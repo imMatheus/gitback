@@ -174,6 +174,7 @@ export const CommitGraph: React.FC<CommitGraphProps> = ({
               dataKey="date"
               tickLine={false}
               tickMargin={10}
+              minTickGap={20}
               axisLine={false}
               tickFormatter={(value) => {
                 if (groupBy === 'day') {
@@ -207,7 +208,7 @@ export const CommitGraph: React.FC<CommitGraphProps> = ({
             <ChartLegend content={<ChartLegendContent payload={[]} />} />
             <Area
               dataKey="lines"
-              type="monotone"
+              type="linear"
               fill="var(--chart-1)"
               fillOpacity={0.4}
               stroke="var(--chart-1)"
