@@ -1,7 +1,42 @@
 import { useParams } from 'react-router'
+import { useQuery } from '@tanstack/react-query'
+
+async function analyzeRepo(username: string, repo: string) {
+  const response = await fetch('http://localhost:8080/api/analyze', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ username, repo }),
+  })
+
+  if (!response.ok) {
+    throw new Error('Failed to analyze repository')
+  }
+
+  return response.json()
+}
 
 export default function Repo() {
   const { username, repo } = useParams<{ username: string; repo: string }>()
+
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: ['analyze', username, repo],
+    queryFn: () => analyzeRepo(username!, repo!),
+    enabled: !!username && !!repo,
+  })
+
+  if (isLoading) {
+    return <div>Analyzing repository...</div>
+  }
+
+  if (isError) {
+    return (
+      <div>
+        Error: {error instanceof Error ? error.message : 'Failed to analyze'}
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
@@ -17,6 +52,11 @@ export default function Repo() {
             <span className="text-blue-400 font-semibold">{repo}</span>
           </p>
         </div>
+        {data && (
+          <p className="text-green-400 mt-4">
+            {data?.message || 'Analysis completed'}
+          </p>
+        )}
       </div>
     </div>
   )

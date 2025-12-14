@@ -36,7 +36,8 @@ func main() {
 
 func analyzeRepo(c *fiber.Ctx) error {
 	type Request struct {
-		RepoURL string `json:"repoUrl"`
+		Username string `json:"username"`
+		Repo     string `json:"repo"`
 	}
 
 	var req Request
@@ -46,15 +47,22 @@ func analyzeRepo(c *fiber.Ctx) error {
 		})
 	}
 
-	if req.RepoURL == "" {
+	if req.Username == "" {
 		return c.Status(400).JSON(fiber.Map{
-			"error": "repoUrl is required",
+			"error": "username is required",
+		})
+	}
+
+	if req.Repo == "" {
+		return c.Status(400).JSON(fiber.Map{
+			"error": "repo is required",
 		})
 	}
 
 	// TODO: Implement actual analysis
 	return c.JSON(fiber.Map{
-		"message": "Analysis started",
-		"repoUrl": req.RepoURL,
+		"message":  "Analysis started",
+		"username": req.Username,
+		"repo":     req.Repo,
 	})
 }

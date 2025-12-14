@@ -19,5 +19,9 @@ export default defineConfig([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: {
+      'no-constant-condition': 'error',
+      '@typescript-eslint/no-unnecessary-condition': 'error',
+    },
   },
 ])
