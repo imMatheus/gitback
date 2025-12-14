@@ -1,4 +1,4 @@
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import {
   ChartContainer,
   ChartLegend,
@@ -27,13 +27,9 @@ import type { CommitStats } from '@/types'
 // ]
 
 const chartConfig = {
-  added: {
-    label: 'Added',
+  lines: {
+    label: 'Total Lines',
     color: 'var(--chart-1)',
-  },
-  removed: {
-    label: 'Removed',
-    color: 'var(--chart-2)',
   },
 } satisfies ChartConfig
 
@@ -81,7 +77,7 @@ export const CommitGraph: React.FC<CommitGraphProps> = ({
     groupBy = 'month'
   }
 
-  const chartData = stats
+  const groupedData = stats
     .map((stat) => {
       const date = new Date(stat.date)
       let key: string
@@ -119,15 +115,25 @@ export const CommitGraph: React.FC<CommitGraphProps> = ({
     }, [] as Array<{ date: string; added: number; removed: number }>)
     .sort((a, b) => a.date.localeCompare(b.date))
 
+  // Calculate cumulative lines
+  let cumulativeLines = 0
+  const chartData = groupedData.map((item) => {
+    cumulativeLines += item.added - item.removed
+    return {
+      date: item.date,
+      lines: cumulativeLines,
+    }
+  })
+
   console.log({ chartData, groupBy, daysDiff })
 
   return (
     <Card className="w-full relative py-0">
       <CardHeader className="flex flex-col items-stretch border-b p-0! sm:flex-row">
         <div className="flex flex-1 flex-col justify-center gap-1 px-6 pt-4 pb-3 sm:py-0!">
-          <CardTitle>Bar Chart - Interactive</CardTitle>
+          <CardTitle>Cumulative Lines Over Time</CardTitle>
           <CardDescription>
-            Showing total visitors for the last 3 months
+            Total lines of code (added - removed) over time
           </CardDescription>
         </div>
         <div className="flex">
@@ -162,7 +168,7 @@ export const CommitGraph: React.FC<CommitGraphProps> = ({
           config={chartConfig}
           className="aspect-auto h-[250px] w-full"
         >
-          <BarChart accessibilityLayer data={chartData}>
+          <AreaChart accessibilityLayer data={chartData}>
             <CartesianGrid vertical={false} />
             <XAxis
               dataKey="date"
@@ -199,27 +205,22 @@ export const CommitGraph: React.FC<CommitGraphProps> = ({
             />
             <ChartTooltip content={<ChartTooltipContent hideLabel />} />
             <ChartLegend content={<ChartLegendContent payload={[]} />} />
-            <Bar
-              dataKey="added"
-              stackId="a"
+            <Area
+              dataKey="lines"
+              type="monotone"
               fill="var(--chart-1)"
-              // radius={[0, 0, 4, 4]}
+              fillOpacity={0.4}
+              stroke="var(--chart-1)"
             />
-            <Bar
-              dataKey="removed"
-              stackId="a"
-              fill="var(--chart-2)"
-              // radius={[4, 4, 0, 0]}
-            />
-          </BarChart>
+          </AreaChart>
         </ChartContainer>
       </CardContent>
       <CardFooter className="flex-col items-start gap-2 text-sm">
         <div className="flex gap-2 leading-none font-medium">
-          Trending up by 5.2% this month
+          Cumulative line count over time
         </div>
         <div className="text-muted-foreground leading-none">
-          Showing total visitors for the last 6 months
+          Showing total lines of code (added - removed)
         </div>
       </CardFooter>
     </Card>
