@@ -11,20 +11,10 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from './ui/card'
 import type { CommitStats } from '@/types'
-
-// const chartData = [
-//   { month: 'January', desktop: 186, mobile: 80 },
-//   { month: 'February', desktop: 305, mobile: 200 },
-//   { month: 'March', desktop: 237, mobile: 120 },
-//   { month: 'April', desktop: 73, mobile: 190 },
-//   { month: 'May', desktop: 209, mobile: 130 },
-//   { month: 'June', desktop: 214, mobile: 140 },
-// ]
 
 const chartConfig = {
   lines: {
@@ -216,14 +206,6 @@ export const CommitGraph: React.FC<CommitGraphProps> = ({
           </AreaChart>
         </ChartContainer>
       </CardContent>
-      <CardFooter className="flex-col items-start gap-2 text-sm">
-        <div className="flex gap-2 leading-none font-medium">
-          Cumulative line count over time
-        </div>
-        <div className="text-muted-foreground leading-none">
-          Showing total lines of code (added - removed)
-        </div>
-      </CardFooter>
     </Card>
   )
 }
