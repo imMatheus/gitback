@@ -2,6 +2,7 @@ import { useParams } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 import { CommitGraph } from '../components/commit-graph'
 import type { CommitStats } from '@/types'
+import { LoadingAnimation } from '@/components/loading-animation'
 
 async function analyzeRepo(username: string, repo: string) {
   const response = await fetch('http://localhost:8080/api/analyze', {
@@ -34,7 +35,11 @@ export default function Repo() {
   })
 
   if (isLoading) {
-    return <div>Analyzing repository...</div>
+    return (
+      <div className="h-screen w-full flex items-center justify-center">
+        <LoadingAnimation />
+      </div>
+    )
   }
 
   if (isError || !data) {
