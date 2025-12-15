@@ -115,35 +115,45 @@ export default function Repo() {
         </div>
       </div>
 
-      <div className="mx-auto grid max-w-6xl grid-cols-2 px-4">
-        <div className="border-obsidian-field border-r-2 p-10">
-          <h3 className="text-3xl font-bold">Craziest week</h3>
-          <p className="text-ion-drift mb-4 text-lg font-medium tracking-wide">
-            The week with the most commits
-          </p>
+      <div className="mx-auto max-w-6xl px-4">
+        <div className="grid grid-cols-2">
+          <div className="border-2 p-10">
+            <h3 className="text-3xl font-bold">Craziest week</h3>
+            <p className="text-ion-drift mb-4 text-lg font-medium tracking-wide">
+              The week with the most commits
+            </p>
 
-          <h3 className="mb-5 text-4xl font-black">5,432 commits</h3>
-          <div className="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-2">
-            <div className="bg-core-flux flex h-12 items-center px-4">
-              <p className="text-obsidian-field text-lg font-bold">Monday</p>
-            </div>
-            <p className="text-lg font-bold">823 commits</p>
+            <h3 className="mb-5 text-4xl font-black">5,432 commits</h3>
+            <div className="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-0">
+              <div className="bg-core-flux flex h-24 items-center rounded-full px-4">
+                <p className="text-obsidian-field text-lg font-bold">Monday</p>
+              </div>
+              <p className="text-lg font-bold">823 commits</p>
 
-            <div
-              className="bg-core-flux flex h-12 items-center px-4"
-              style={{ width: '80%' }}
-            >
-              <p className="text-obsidian-field text-lg font-bold">Monday</p>
-            </div>
-            <p className="text-lg font-bold">823 commits</p>
+              <div
+                className="bg-ion-drift flex h-20 items-center rounded-full px-4"
+                style={{ width: '80%' }}
+              >
+                <p className="text-obsidian-field text-lg font-bold">Monday</p>
+              </div>
+              <p className="text-lg font-bold">823 commits</p>
 
-            <div
-              className="bg-core-flux flex h-12 items-center px-4"
-              style={{ width: '60%' }}
-            >
-              <p className="text-obsidian-field text-lg font-bold">Monday</p>
+              <div
+                className="bg-pinky flex h-16 items-center rounded-full px-4"
+                style={{ width: '60%' }}
+              >
+                <p className="text-obsidian-field text-lg font-bold">Monday</p>
+              </div>
+              <p className="text-lg font-bold">823 commits</p>
+
+              <div
+                className="bg-polar-sand flex h-12 items-center rounded-full px-4"
+                style={{ width: '50%' }}
+              >
+                <p className="text-obsidian-field text-lg font-bold">Monday</p>
+              </div>
+              <p className="text-lg font-bold">823 commits</p>
             </div>
-            <p className="text-lg font-bold">823 commits</p>
           </div>
         </div>
       </div>
