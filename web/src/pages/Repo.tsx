@@ -1,4 +1,4 @@
-import { useParams } from 'react-router'
+import { Link, useParams } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 import { CommitGraph } from '../components/commit-graph'
 import type { CommitStats } from '@/types'
@@ -36,7 +36,7 @@ export default function Repo() {
 
   if (isLoading) {
     return (
-      <div className="h-screen w-full flex items-center justify-center">
+      <div className="flex h-screen w-full items-center justify-center">
         <LoadingAnimation />
       </div>
     )
@@ -51,58 +51,52 @@ export default function Repo() {
   }
 
   return (
-    <div className="min-h-screen py-10">
-      <div className="max-w-6xl mx-auto px-4">
+    <div className="min-h-screen py-4">
+      <div className="mx-auto max-w-6xl px-4">
+        <div className="mb-4 flex items-center">
+          <Link to={'/'} className="text-sm hover:underline">
+            ← Search another one
+          </Link>
+        </div>
+        <div className="mb-3">
+          <h1 className="mb-3 text-5xl font-black tracking-tight">{repo}</h1>
+          <h3 className="text-2xl font-medium tracking-tight">{username}</h3>
+        </div>
+
         <CommitGraph
           stats={data.stats}
           totalAdded={data.totalAdded}
           totalRemoved={data.totalRemoved}
         />
-        <h1 className="text-4xl font-bold mb-4">Repository</h1>
-        <div className="space-y-2">
-          <p className="text-xl">
-            <span className="text-neutral-400">Username:</span>{' '}
-            <span className="text-blue-400 font-semibold">{username}</span>
-          </p>
-          <p className="text-xl">
-            <span className="text-neutral-400">Repository:</span>{' '}
-            <span className="text-blue-400 font-semibold">{repo}</span>
-          </p>
-        </div>
-        {data && (
-          <p className="text-green-400 mt-4">
-            {data?.message || 'Analysis completed'}
-          </p>
-        )}
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 grid grid-cols-2">
-        <div className="p-10 border-r-2 border-obsidian-field">
-          <h3 className="font-bold text-3xl">Craziest week</h3>
-          <p className="mb-4 font-medium text-lg tracking-wide text-ion-drift">
+      <div className="mx-auto grid max-w-6xl grid-cols-2 px-4">
+        <div className="border-obsidian-field border-r-2 p-10">
+          <h3 className="text-3xl font-bold">Craziest week</h3>
+          <p className="text-ion-drift mb-4 text-lg font-medium tracking-wide">
             The week with the most commits
           </p>
 
-          <h3 className="font-black text-4xl mb-5">5,432 commits</h3>
-          <div className="gap-y-2 grid grid-cols-[1fr_auto] items-center gap-x-4">
-            <div className="px-4 h-12 bg-core-flux flex items-center">
-              <p className="text-lg font-bold text-obsidian-field">Monday</p>
+          <h3 className="mb-5 text-4xl font-black">5,432 commits</h3>
+          <div className="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-2">
+            <div className="bg-core-flux flex h-12 items-center px-4">
+              <p className="text-obsidian-field text-lg font-bold">Monday</p>
             </div>
             <p className="text-lg font-bold">823 commits</p>
 
             <div
-              className="px-4 h-12 bg-core-flux flex items-center"
+              className="bg-core-flux flex h-12 items-center px-4"
               style={{ width: '80%' }}
             >
-              <p className="text-lg font-bold text-obsidian-field">Monday</p>
+              <p className="text-obsidian-field text-lg font-bold">Monday</p>
             </div>
             <p className="text-lg font-bold">823 commits</p>
 
             <div
-              className="px-4 h-12 bg-core-flux flex items-center"
+              className="bg-core-flux flex h-12 items-center px-4"
               style={{ width: '60%' }}
             >
-              <p className="text-lg font-bold text-obsidian-field">Monday</p>
+              <p className="text-obsidian-field text-lg font-bold">Monday</p>
             </div>
             <p className="text-lg font-bold">823 commits</p>
           </div>

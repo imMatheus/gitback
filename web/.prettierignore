@@ -1,0 +1,15 @@
+# Dependencies
+node_modules
+bun.lock
+
+# Build outputs
+dist
+dist-ssr
+*.local
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+

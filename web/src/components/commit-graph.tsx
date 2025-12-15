@@ -91,6 +91,7 @@ export const CommitGraph: React.FC<CommitGraphProps> = ({
         date: key,
         added: stat.added,
         removed: stat.removed,
+        representativeDate: stat.date,
       }
     })
     .reduce((acc, curr) => {
@@ -98,11 +99,15 @@ export const CommitGraph: React.FC<CommitGraphProps> = ({
       if (existing) {
         existing.added += curr.added
         existing.removed += curr.removed
+        existing.commitCount += 1
       } else {
-        acc.push(curr)
+        acc.push({
+          ...curr,
+          commitCount: 1,
+        })
       }
       return acc
-    }, [] as Array<{ date: string; added: number; removed: number }>)
+    }, [] as Array<{ date: string; added: number; removed: number; commitCount: number; representativeDate: string }>)
     .sort((a, b) => a.date.localeCompare(b.date))
 
   // Calculate cumulative lines
@@ -112,6 +117,8 @@ export const CommitGraph: React.FC<CommitGraphProps> = ({
     return {
       date: item.date,
       lines: cumulativeLines,
+      commitCount: item.commitCount,
+      representativeDate: item.representativeDate,
     }
   })
 
@@ -194,7 +201,51 @@ export const CommitGraph: React.FC<CommitGraphProps> = ({
               tickMargin={10}
               tickFormatter={(value) => value.toLocaleString()}
             />
-            <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+            <ChartTooltip
+              content={
+                <ChartTooltipContent
+                  labelFormatter={(value, payload) => {
+                    if (!payload || !payload[0]) return value
+                    const data = payload[0].payload as {
+                      date: string
+                      representativeDate: string
+                      commitCount: number
+                    }
+
+                    // Format the date based on groupBy
+                    let formattedDate: string
+                    if (groupBy === 'day') {
+                      const date = new Date(data.representativeDate)
+                      formattedDate = date.toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })
+                    } else if (groupBy === 'week' || groupBy === '2weeks') {
+                      const parts = data.date.split('-W')
+                      formattedDate = `Week ${parts[1]}, ${parts[0]}`
+                    } else {
+                      const [year, month] = data.date.split('-')
+                      const date = new Date(parseInt(year), parseInt(month) - 1)
+                      formattedDate = date.toLocaleDateString('en-US', {
+                        month: 'long',
+                        year: 'numeric',
+                      })
+                    }
+
+                    return (
+                      <div className="font-medium">
+                        <div>{formattedDate}</div>
+                        <div className="text-muted-foreground text-xs font-normal mt-0.5">
+                          {data.commitCount}{' '}
+                          {data.commitCount === 1 ? 'commit' : 'commits'}
+                        </div>
+                      </div>
+                    )
+                  }}
+                />
+              }
+            />
             <ChartLegend content={<ChartLegendContent payload={[]} />} />
             <Area
               dataKey="lines"
