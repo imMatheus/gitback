@@ -136,7 +136,7 @@ export default function Repo() {
         </div>
 
         <div className="mt-20">
-          <CommitWordCloud stats={data.stats} />
+          <CommitWordCloud commits={data.stats} />
         </div>
       </div>
     </div>

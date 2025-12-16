@@ -56,7 +56,7 @@ export const TopContributors: React.FC<TopContributorsProps> = ({ stats }) => {
   console.log({ sortedContributors })
 
   return (
-    <div className="my-20">
+    <div className="">
       {/* <h3 className="bg-core-flux text-obsidian-field w-max rounded-full px-7 py-4 text-6xl font-black">
         Top Contributors
       </h3> */}
