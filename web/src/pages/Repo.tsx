@@ -6,6 +6,7 @@ import { LoadingAnimation } from '@/components/loading-animation'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import NotFound from './NotFound'
+import { TopContributors } from '@/components/top-contributors'
 
 async function analyzeRepo(username: string, repo: string) {
   const response = await fetch('http://localhost:8080/api/analyze', {
@@ -125,8 +126,12 @@ export default function Repo() {
           </div>
         </div>
 
-        <div className="pt-32">
+        <div className="mt-32">
           <CraziestWeek stats={data.stats} />
+        </div>
+
+        <div className="mt-20">
+          <TopContributors stats={data.stats} />
         </div>
       </div>
     </div>
@@ -261,12 +266,12 @@ function CraziestWeek({ stats }: CraziestWeekProps) {
 
   return (
     <div className="">
-      <h3 className="text-4xl font-black">Most commits in one week</h3>
-      <p className="text-ion-drift mb-4 text-xl font-semibold">
+      <h3 className="mb-2 text-5xl font-black">Most commits in one week</h3>
+      <p className="mb-4 text-xl font-semibold">
         {format(weekData.weekStart, 'MMMM d, yyyy')}
       </p>
 
-      <h3 className="mb-5 text-5xl font-black">
+      <h3 className="mb-5 text-6xl font-black">
         {weekData.totalCommits.toLocaleString()} commits
       </h3>
       <div className="max-w-2xl space-y-2">

@@ -131,8 +131,6 @@ export const CommitGraph: React.FC<CommitGraphProps> = ({
     }
   })
 
-  console.log({ chartData, groupBy, daysDiff })
-
   return (
     <Card className="relative w-full py-0">
       <CardHeader className="flex flex-col items-stretch border-b p-0! sm:flex-row">
