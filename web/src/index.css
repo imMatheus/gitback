@@ -95,6 +95,8 @@
   --color-obsidian-field: var(--obsidian-field);
   --color-ion-drift: var(--ion-drift);
   --color-pinky: var(--pinky);
+
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
 }
 
 @utility flex-center {
@@ -103,9 +105,4 @@
 
 body {
   @apply bg-obsidian-field text-polar-sand font-sans;
-  font-family:
-    'Inter',
-    system-ui,
-    -apple-system,
-    sans-serif;
 }
