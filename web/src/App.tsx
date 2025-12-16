@@ -1,16 +1,16 @@
-import { Routes, Route } from 'react-router';
-import Home from './pages/Home';
-import Repo from './pages/Repo';
-import NotFound from './pages/NotFound';
+import { Routes, Route } from 'react-router'
+import Home from './pages/Home'
+import Repo from './pages/Repo'
+import NotFound from './pages/NotFound'
 
 function App() {
   return (
     <Routes>
       <Route index element={<Home />} />
       <Route path="/:username/:repo" element={<Repo />} />
-      <Route path="*" element={<NotFound />} />
+      <Route path="*" element={<NotFound isRepo={false} />} />
     </Routes>
-  );
+  )
 }
 
-export default App;
+export default App

@@ -5,6 +5,7 @@ import type { CommitStats } from '@/types'
 import { LoadingAnimation } from '@/components/loading-animation'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
+import NotFound from './NotFound'
 
 async function analyzeRepo(username: string, repo: string) {
   const response = await fetch('http://localhost:8080/api/analyze', {
@@ -16,6 +17,9 @@ async function analyzeRepo(username: string, repo: string) {
   })
 
   if (!response.ok) {
+    if (response.status === 404) {
+      throw new Error('NOT_FOUND')
+    }
     throw new Error('Failed to analyze repository')
   }
 
@@ -35,6 +39,8 @@ export default function Repo() {
     queryKey: ['analyze', username, repo],
     queryFn: () => analyzeRepo(username!, repo!),
     enabled: !!username && !!repo,
+    retry: 3,
+    retryDelay: 400,
   })
 
   if (isLoading) {
@@ -46,6 +52,9 @@ export default function Repo() {
   }
 
   if (isError || !data) {
+    if (error instanceof Error && error.message === 'NOT_FOUND') {
+      return <NotFound isRepo={true} />
+    }
     return (
       <div>
         Error: {error instanceof Error ? error.message : 'Failed to analyze'}

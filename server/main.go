@@ -68,6 +68,12 @@ func analyzeRepo(c *fiber.Ctx) error {
 	stats, err := cloneRepo(fmt.Sprintf("https://github.com/%s/%s.git", req.Username, req.Repo))
 	if err != nil {
 		fmt.Println(err)
+		// Check if it's a 404 error (repository not found)
+		if isNotFoundError(err) {
+			return c.Status(404).JSON(fiber.Map{
+				"error": "Repository not found",
+			})
+		}
 		return c.Status(500).JSON(fiber.Map{
 			"error": "Failed to clone repository",
 		})
@@ -105,7 +111,6 @@ type CommitStats struct {
 }
 
 func cloneRepo(repoURL string) ([]CommitStats, error) {
-	// 1. Create temp dir
 	tmpDir, err := os.MkdirTemp("", "repo-analysis-")
 	if err != nil {
 		return nil, err
@@ -172,4 +177,17 @@ func cloneRepo(repoURL string) ([]CommitStats, error) {
 	}
 
 	return stats, nil
+}
+
+func isNotFoundError(err error) bool {
+	if err == nil {
+		return false
+	}
+	errStr := err.Error()
+	// honestly probably better way to handle
+	// the api will usually return "exit status 128"
+	return strings.Contains(errStr, "exit status 128") ||
+		strings.Contains(errStr, "Repository not found") ||
+		strings.Contains(errStr, "fatal: repository") ||
+		strings.Contains(errStr, "remote: Repository not found")
 }
