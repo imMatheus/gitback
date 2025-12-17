@@ -43,7 +43,6 @@ func main() {
 
 	log.Fatal(app.Listen(":" + port))
 }
-
 func analyzeRepo(c *fiber.Ctx) error {
 	type Request struct {
 		Username string `json:"username"`
@@ -52,32 +51,39 @@ func analyzeRepo(c *fiber.Ctx) error {
 
 	var req Request
 	if err := c.BodyParser(&req); err != nil {
+		log.Printf("Error parsing request body: %v", err)
 		return c.Status(400).JSON(fiber.Map{
 			"error": "Invalid request body",
 		})
 	}
 
 	if req.Username == "" {
+		log.Printf("Missing username in request")
 		return c.Status(400).JSON(fiber.Map{
 			"error": "username is required",
 		})
 	}
 
 	if req.Repo == "" {
+		log.Printf("Missing repo in request")
 		return c.Status(400).JSON(fiber.Map{
 			"error": "repo is required",
 		})
 	}
 
-	commits, fileTouchCounts, err := cloneRepo(fmt.Sprintf("https://github.com/%s/%s.git", req.Username, req.Repo))
+	repoURL := fmt.Sprintf("https://github.com/%s/%s.git", req.Username, req.Repo)
+	log.Printf("Starting analysis for repository: %s", repoURL)
+
+	commits, fileTouchCounts, err := cloneRepo(repoURL)
 	if err != nil {
-		fmt.Println(err)
 		// Check if it's a 404 error (repository not found)
 		if isNotFoundError(err) {
+			log.Printf("Repository not found: %s - Error: %v", repoURL, err)
 			return c.Status(404).JSON(fiber.Map{
 				"error": "Repository not found",
 			})
 		}
+		log.Printf("Failed to clone repository: %s - Error: %v", repoURL, err)
 		return c.Status(500).JSON(fiber.Map{
 			"error": "Failed to clone repository",
 		})
@@ -95,6 +101,9 @@ func analyzeRepo(c *fiber.Ctx) error {
 			totalContributors++
 		}
 	}
+
+	log.Printf("Analysis completed for %s: %d commits, %d contributors, +%d/-%d lines",
+		repoURL, len(commits), totalContributors, totalAdded, totalRemoved)
 
 	// Get top 100 most touched files
 	topFiles := getTopTouchedFiles(fileTouchCounts, 100)
@@ -166,11 +175,14 @@ func cloneRepo(repoURL string) ([]CommitStats, map[string]int, error) {
 
 	startTime := time.Now()
 	cloneCmd := exec.Command("git", "clone", "--bare", "--single-branch", repoURL, tmpDir)
+	var cloneStderr bytes.Buffer
+	cloneCmd.Stderr = &cloneStderr
 	if err := cloneCmd.Run(); err != nil {
+		log.Printf("Git clone failed for %s: %v - stderr: %s", repoURL, err, cloneStderr.String())
 		return nil, nil, err
 	}
 	elapsed := time.Since(startTime)
-	fmt.Printf("Successfully cloned repository [%s] in %s\n", repoURL, elapsed)
+	log.Printf("Successfully cloned repository [%s] in %s", repoURL, elapsed)
 
 	startTime = time.Now()
 	// Run git log with --numstat to get added/removed counts and file names
@@ -179,12 +191,15 @@ func cloneRepo(repoURL string) ([]CommitStats, map[string]int, error) {
 		"--pretty=format:COMMIT:%H|%an|%at|%s",
 	)
 	cmd.Dir = tmpDir
+	var gitLogStderr bytes.Buffer
+	cmd.Stderr = &gitLogStderr
 	output, err := cmd.Output()
 	if err != nil {
+		log.Printf("Git log failed for %s: %v - stderr: %s", repoURL, err, gitLogStderr.String())
 		return nil, nil, err
 	}
 	elapsed = time.Since(startTime)
-	fmt.Printf("Successfully ran git log for repository [%s] in %s\n", repoURL, elapsed)
+	log.Printf("Successfully ran git log for repository [%s] in %s", repoURL, elapsed)
 
 	// Parse the output into CommitStats and accumulate file touches
 	var commits []CommitStats
