@@ -28,7 +28,7 @@ const chartConfig = {
 } satisfies ChartConfig
 
 interface CommitGraphProps {
-  stats: CommitStats[]
+  commits: CommitStats[]
   totalAdded: number
   totalRemoved: number
 }
@@ -38,12 +38,15 @@ function getMonthKey(date: Date): string {
 }
 
 export const CommitGraph: React.FC<CommitGraphProps> = ({
-  stats,
+  commits,
   totalAdded,
   totalRemoved,
 }) => {
   // Calculate date range
-  const dates = useMemo(() => stats.map((stat) => new Date(stat.date)), [stats])
+  const dates = useMemo(
+    () => commits.map((commit) => new Date(commit.date)),
+    [commits]
+  )
   const _dateNumbers = useMemo(() => dates.map((d) => d.getTime()), [dates])
   const absoluteMinDate = useMemo(
     () => new Date(Math.min(..._dateNumbers)),
@@ -104,16 +107,16 @@ export const CommitGraph: React.FC<CommitGraphProps> = ({
 
     const fullHistoryMap = new Map<string, CommitStats[]>()
 
-    for (let i = stats.length - 1; i >= 0; i--) {
-      const stat = stats[i]!
+    for (let i = commits.length - 1; i >= 0; i--) {
+      const commit = commits[i]!
 
-      const date = new Date(stat.date)
+      const date = new Date(commit.date)
       let key
       switch (fullHistoryGroupBy) {
         case 'day':
         case 'week':
         case '2weeks':
-          key = stat.date.split('T')[0]
+          key = commit.date.split('T')[0]
           break
         // case 'week':
         //   key = getWeekKey(date, 1)
@@ -129,7 +132,7 @@ export const CommitGraph: React.FC<CommitGraphProps> = ({
       if (!fullHistoryMap.has(key)) {
         fullHistoryMap.set(key, [])
       }
-      fullHistoryMap.get(key)!.push(stat)
+      fullHistoryMap.get(key)!.push(commit)
     }
 
     const fullHistoryData: {
@@ -149,16 +152,16 @@ export const CommitGraph: React.FC<CommitGraphProps> = ({
 
   const matheusMap = new Map<string, CommitStats[]>()
 
-  for (let i = stats.length - 1; i >= 0; i--) {
-    const stat = stats[i]!
+  for (let i = commits.length - 1; i >= 0; i--) {
+    const commit = commits[i]!
 
-    const date = new Date(stat.date)
+    const date = new Date(commit.date)
     let key
     switch (groupBy) {
       case 'day':
       case 'week':
       case '2weeks':
-        key = stat.date.split('T')[0]
+        key = commit.date.split('T')[0]
         break
       // case 'week':
       //   key = getWeekKey(date, 1)
@@ -174,7 +177,7 @@ export const CommitGraph: React.FC<CommitGraphProps> = ({
     if (!matheusMap.has(key)) {
       matheusMap.set(key, [])
     }
-    matheusMap.get(key)!.push(stat)
+    matheusMap.get(key)!.push(commit)
   }
 
   const matheusF = Array.from(matheusMap.entries())
@@ -188,11 +191,11 @@ export const CommitGraph: React.FC<CommitGraphProps> = ({
 
   let totalLines = 0
   for (let i = 0; i < matheusF.length; i++) {
-    const [key, commits] = matheusF[i]!
+    const [key, commitsList] = matheusF[i]!
     let added = 0
     let removed = 0
-    for (let j = 0; j < commits.length; j++) {
-      const commit = commits[j]!
+    for (let j = 0; j < commitsList.length; j++) {
+      const commit = commitsList[j]!
       totalLines += commit.added - commit.removed
       added += commit.added
       removed += commit.removed
@@ -205,7 +208,7 @@ export const CommitGraph: React.FC<CommitGraphProps> = ({
       matheusData.push({
         date: key,
         lines: totalLines,
-        commitCount: commits.length,
+        commitCount: commitsList.length,
         added,
         removed,
       })

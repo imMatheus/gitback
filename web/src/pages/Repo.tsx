@@ -12,7 +12,8 @@ import { FileHeatmap } from '@/components/file-heatmap'
 import { FileCountDistribution } from '@/components/file-count-distributionProps'
 
 async function analyzeRepo(username: string, repo: string) {
-  const response = await fetch('http://localhost:8080/api/analyze', {
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+  const response = await fetch(`${apiUrl}/api/analyze`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -32,7 +33,7 @@ async function analyzeRepo(username: string, repo: string) {
     totalAdded: number
     totalRemoved: number
     totalContributors: number
-    stats: CommitStats[]
+    commits: CommitStats[]
     mostTouchedFiles: FileTouchCount[]
   }>
 }
@@ -69,8 +70,8 @@ export default function Repo() {
     )
   }
 
-  const commitsThisYear = data.stats.filter(
-    (stat) => new Date(stat.date).getFullYear() === THIS_YEAR
+  const commitsThisYear = data.commits.filter(
+    (commit) => new Date(commit.date).getFullYear() === THIS_YEAR
   )
 
   return (
@@ -98,7 +99,7 @@ export default function Repo() {
         </div>
 
         <CommitGraph
-          stats={data.stats}
+          commits={data.commits}
           totalAdded={data.totalAdded}
           totalRemoved={data.totalRemoved}
         />
