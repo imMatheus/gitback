@@ -9,8 +9,6 @@ interface FileHeatmapProps {
 export const FileHeatmap: React.FC<FileHeatmapProps> = ({
   mostTouchedFiles,
 }) => {
-  console.log({ mostTouchedFiles })
-
   return (
     <div className="">
       <h3 className="my-4 text-6xl font-black">Most Touched Files</h3>

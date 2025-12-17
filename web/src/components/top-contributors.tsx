@@ -9,8 +9,6 @@ interface TopContributorsProps {
 const thisYear = new Date('01-01-2025')
 
 export const TopContributors: React.FC<TopContributorsProps> = ({ stats }) => {
-  console.log({ stats })
-
   let totalCommitsThisYear = 0
   const contributors: Record<
     string,
@@ -52,8 +50,6 @@ export const TopContributors: React.FC<TopContributorsProps> = ({ stats }) => {
     totalRemoved += contributor.removed
     totalCommits += contributor.commits
   }
-
-  console.log({ sortedContributors })
 
   return (
     <div className="">

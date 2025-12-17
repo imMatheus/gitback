@@ -26,8 +26,6 @@ export const CommitWordCloud: React.FC<CommitWordCloudProps> = ({
     }
   }
 
-  console.log(wordCounts)
-
   return (
     <div className="my-20">
       <h3 className="mb-4 text-6xl font-black">Bänger commits!</h3>

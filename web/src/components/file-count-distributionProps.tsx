@@ -99,7 +99,6 @@ export const FileCountDistribution: React.FC<FileCountDistributionProps> = ({
   }
 
   const maxValue = Math.max(...Object.values(distribution))
-  console.log(distribution)
 
   const bars = ALL_BARS.sort((a, b) => {
     const aValue = distribution[a as keyof typeof distribution]

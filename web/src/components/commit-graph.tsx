@@ -367,8 +367,6 @@ export const CommitGraph: React.FC<CommitGraphProps> = ({
                     commitCount: number
                   }
 
-                  console.log({ data })
-
                   // Format the date based on groupBy
                   let formattedDate: string
                   if (groupBy === 'day') {
