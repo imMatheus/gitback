@@ -19,13 +19,21 @@ const chartConfig = {
 
 interface CommitGraphProps {
   commits: CommitStats[]
+  totalContributors: number
+  totalAdded: number
+  totalRemoved: number
 }
 
 function getMonthKey(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
 }
 
-export const CommitGraph: React.FC<CommitGraphProps> = ({ commits }) => {
+export const CommitGraph: React.FC<CommitGraphProps> = ({
+  commits,
+  totalContributors,
+  totalAdded,
+  totalRemoved,
+}) => {
   // Calculate date range
   const dates = useMemo(
     () => commits.map((commit) => new Date(commit.date)),
@@ -275,32 +283,30 @@ export const CommitGraph: React.FC<CommitGraphProps> = ({ commits }) => {
 
         <div className="bg-ion-drift rounded-full px-10 py-5 text-right">
           <p className="w-full text-4xl font-black">
-            {(
-              matheusData.reduce((sum, item) => sum + item.added, 0) -
-              matheusData.reduce((sum, item) => sum + item.removed, 0)
-            ).toLocaleString()}
+            {(totalAdded - totalRemoved).toLocaleString()}
           </p>
           <p className="font-semibold">Total lines</p>
         </div>
 
         <div className="bg-alloy-ember rounded-full px-10 py-5 text-right">
           <p className="w-full text-4xl font-black">
-            +
-            {matheusData
-              .reduce((sum, item) => sum + item.added, 0)
-              .toLocaleString()}
+            +{totalAdded.toLocaleString()}
           </p>
           <p className="font-semibold">Total lines added</p>
         </div>
 
-        <div className="bg-polar-sand rounded-full px-10 py-5 text-right">
+        {/* <div className="bg-polar-sand rounded-full px-10 py-5 text-right">
           <p className="w-full text-4xl font-black">
-            -
-            {matheusData
-              .reduce((sum, item) => sum + item.removed, 0)
-              .toLocaleString()}
+            -{totalRemoved.toLocaleString()}
           </p>
           <p className="font-semibold">Total lines removed</p>
+        </div> */}
+
+        <div className="bg-pinky rounded-full px-10 py-5 text-right">
+          <p className="w-full text-4xl font-black">
+            {totalContributors.toLocaleString()}
+          </p>
+          <p className="font-semibold">Contributors</p>
         </div>
       </div>
 

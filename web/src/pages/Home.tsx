@@ -32,9 +32,13 @@ export default function Home() {
     <div className="flex h-full min-h-screen flex-col px-4">
       <div className="mx-auto flex h-full w-full max-w-4xl flex-1 flex-col">
         <header className="flex items-center justify-between pt-4">
-          <h3 className="bg-ion-drift text-obsidian-field rounded-full px-3 py-1.5 text-xl font-black">
-            GitBack
-          </h3>
+          <div className="flex items-center gap-2">
+            <img
+              src="/images/logo.png"
+              alt="GitBack"
+              className="size-10 object-cover"
+            />
+          </div>
           <div className="flex items-center gap-2">
             <a
               href="https://github.com/imMatheus/gitback"

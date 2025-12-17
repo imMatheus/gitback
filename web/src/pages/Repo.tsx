@@ -78,8 +78,12 @@ export default function Repo() {
     <div className="mx-auto min-h-screen max-w-6xl pt-4 pb-32">
       <div className="px-6">
         <div className="mb-4 flex items-center">
-          <Link to={'/'} className="text-sm hover:underline">
-            ← Search another one
+          <Link to={'/'} className="">
+            <img
+              src="/images/logo.png"
+              alt="GitBack"
+              className="size-10 object-cover"
+            />
           </Link>
         </div>
         <div className="mb-10 flex justify-between">
@@ -87,18 +91,14 @@ export default function Repo() {
             <h1 className="mb-3 text-5xl font-black tracking-tight">{repo}</h1>
             <h3 className="text-xl font-medium tracking-tight">{username}</h3>
           </div>
-
-          <div className="text-obsidian-field flex gap-2">
-            <div className="flex-center bg-pinky flex-col rounded-full px-10 py-5 text-right">
-              <p className="w-full text-4xl font-black">
-                {data.totalContributors.toLocaleString()}
-              </p>
-              <p className="font-semibold">Contributors</p>
-            </div>
-          </div>
         </div>
 
-        <CommitGraph commits={data.commits} />
+        <CommitGraph
+          commits={data.commits}
+          totalContributors={data.totalContributors}
+          totalAdded={data.totalAdded}
+          totalRemoved={data.totalRemoved}
+        />
 
         <div className="my-10 grid grid-rows-3 space-y-3">
           <div className="flex gap-3 transition-all ease-in-out">
