@@ -107,12 +107,13 @@ func analyzeRepo(c *fiber.Ctx) error {
 }
 
 type CommitStats struct {
-	Hash    string    `json:"hash"`
-	Author  string    `json:"author"`
-	Date    time.Time `json:"date"`
-	Added   int       `json:"added"`
-	Removed int       `json:"removed"`
-	Message string    `json:"message"`
+	Hash              string    `json:"hash"`
+	Author            string    `json:"author"`
+	Date              time.Time `json:"date"`
+	Added             int       `json:"added"`
+	Removed           int       `json:"removed"`
+	Message           string    `json:"message"`
+	FilesTouchedCount int       `json:"filesTouchedCount"`
 }
 
 type FileTouchCount struct {
@@ -206,12 +207,13 @@ func cloneRepo(repoURL string) ([]CommitStats, map[string]int, error) {
 				}
 				date := time.Unix(timestamp, 0)
 				currentCommit = &CommitStats{
-					Hash:    parts[0],
-					Author:  parts[1],
-					Date:    date,
-					Message: parts[3],
-					Added:   0,
-					Removed: 0,
+					Hash:              parts[0],
+					Author:            parts[1],
+					Date:              date,
+					Message:           parts[3],
+					Added:             0,
+					Removed:           0,
+					FilesTouchedCount: 0,
 				}
 			}
 		} else if currentCommit != nil {
@@ -245,6 +247,7 @@ func cloneRepo(repoURL string) ([]CommitStats, map[string]int, error) {
 
 				// Track file touches (count each file once per commit)
 				if fileName != "" {
+					currentCommit.FilesTouchedCount++
 					fileTouchCounts[fileName]++
 				}
 			}

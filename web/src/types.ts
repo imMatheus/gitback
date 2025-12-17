@@ -5,6 +5,7 @@ export type CommitStats = {
   added: number
   removed: number
   message: string
+  filesTouchedCount: number
 }
 
 export type FileTouchCount = {
