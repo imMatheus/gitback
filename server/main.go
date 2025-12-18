@@ -1,13 +1,13 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"log"
 	"os"
 	"os/exec"
 	"runtime"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -37,15 +37,12 @@ func main() {
 
 	app.Post("/api/analyze", analyzeRepo)
 
-	// Get port from environment (Cloud Run sets this)
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
 
-	// Log system info on startup
 	logSystemInfo()
-
 	log.Fatal(app.Listen(":" + port))
 }
 
@@ -56,19 +53,16 @@ func logSystemInfo() {
 	log.Printf("GOOS: %s", runtime.GOOS)
 	log.Printf("GOARCH: %s", runtime.GOARCH)
 
-	// Check git version
 	gitVersion := exec.Command("git", "--version")
 	out, err := gitVersion.Output()
 	if err == nil {
 		log.Printf("Git version: %s", strings.TrimSpace(string(out)))
 	}
 
-	// Check git config
 	protocolCmd := exec.Command("git", "config", "--get", "protocol.version")
 	protocolOut, _ := protocolCmd.Output()
 	log.Printf("Git protocol.version: %s", strings.TrimSpace(string(protocolOut)))
 
-	// Test network speed to github.com
 	log.Printf("Testing network speed to github.com...")
 	testNetworkSpeed()
 
@@ -123,11 +117,10 @@ func analyzeRepo(c *fiber.Ctx) error {
 	repoURL := fmt.Sprintf("https://github.com/%s/%s.git", req.Username, req.Repo)
 	log.Printf("=== Starting analysis for: %s ===", repoURL)
 
-	// Log system stats at request time
 	logRequestSystemStats()
 
 	cloneStart := time.Now()
-	commits, fileTouchCounts, err := cloneRepo(repoURL)
+	commits, err := cloneRepo(repoURL)
 	cloneDuration := time.Since(cloneStart)
 	log.Printf("[TIMING] Total cloneRepo execution: %v", cloneDuration)
 
@@ -162,24 +155,15 @@ func analyzeRepo(c *fiber.Ctx) error {
 	log.Printf("Analysis completed for %s: %d commits, %d contributors, +%d/-%d lines",
 		repoURL, len(commits), totalContributors, totalAdded, totalRemoved)
 
-	topFilesStart := time.Now()
-	topFiles := getTopTouchedFiles(fileTouchCounts, 100)
-	log.Printf("[TIMING] Get top touched files: %v", time.Since(topFilesStart))
-
-	jsonStart := time.Now()
 	response := fiber.Map{
 		"message":           "Analysis completed",
 		"totalAdded":        totalAdded,
 		"totalRemoved":      totalRemoved,
 		"totalContributors": totalContributors,
 		"commits":           commits,
-		"mostTouchedFiles":  topFiles,
 	}
 
-	// Measure JSON marshaling time
 	err = c.JSON(response)
-	jsonDuration := time.Since(jsonStart)
-	log.Printf("[TIMING] JSON marshaling and response: %v", jsonDuration)
 
 	totalDuration := time.Since(requestStart)
 	log.Printf("[TIMING] *** TOTAL REQUEST TIME: %v ***", totalDuration)
@@ -198,7 +182,6 @@ func logRequestSystemStats() {
 	log.Printf("[STATS] Memory Sys: %d MB", m.Sys/1024/1024)
 	log.Printf("[STATS] NumGC: %d", m.NumGC)
 
-	// Check available disk space
 	dfCmd := exec.Command("df", "-h", "/tmp")
 	dfOut, err := dfCmd.Output()
 	if err == nil {
@@ -210,54 +193,17 @@ func logRequestSystemStats() {
 }
 
 type CommitStats struct {
-	Hash              string    `json:"hash"`
-	Author            string    `json:"author"`
-	Date              time.Time `json:"date"`
-	Added             int       `json:"added"`
-	Removed           int       `json:"removed"`
-	Message           string    `json:"message"`
-	FilesTouchedCount int       `json:"filesTouchedCount"`
+	Hash    string    `json:"hash"`
+	Author  string    `json:"author"`
+	Date    time.Time `json:"date"` // Unix timestamp for faster JSON marshaling
+	Added   int       `json:"added"`
+	Removed int       `json:"removed"`
+	Message string    `json:"message"`
 }
 
-type FileTouchCount struct {
-	File  string `json:"file"`
-	Count int    `json:"count"`
-}
-
-func getTopTouchedFiles(fileCounts map[string]int, limit int) []FileTouchCount {
-	type fileCountPair struct {
-		file  string
-		count int
-	}
-
-	pairs := make([]fileCountPair, 0, len(fileCounts))
-	for file, count := range fileCounts {
-		pairs = append(pairs, fileCountPair{file: file, count: count})
-	}
-
-	sort.Slice(pairs, func(i, j int) bool {
-		return pairs[i].count > pairs[j].count
-	})
-
-	if limit > len(pairs) {
-		limit = len(pairs)
-	}
-
-	result := make([]FileTouchCount, limit)
-	for i := 0; i < limit; i++ {
-		result[i] = FileTouchCount{
-			File:  pairs[i].file,
-			Count: pairs[i].count,
-		}
-	}
-
-	return result
-}
-
-func cloneRepo(repoURL string) ([]CommitStats, map[string]int, error) {
+func cloneRepo(repoURL string) ([]CommitStats, error) {
 	overallStart := time.Now()
 
-	// Log network test before clone
 	log.Printf("[DEBUG] Testing network to GitHub before clone...")
 	pingStart := time.Now()
 	pingCmd := exec.Command("ping", "-c", "1", "github.com")
@@ -271,12 +217,11 @@ func cloneRepo(repoURL string) ([]CommitStats, map[string]int, error) {
 	tmpDirStart := time.Now()
 	tmpDir, err := os.MkdirTemp("", "repo-analysis-")
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	defer os.RemoveAll(tmpDir)
 	log.Printf("[TIMING] Create temp dir: %v (path: %s)", time.Since(tmpDirStart), tmpDir)
 
-	// Git clone
 	cloneStart := time.Now()
 	log.Printf("[DEBUG] Starting git clone for %s", repoURL)
 	cloneCmd := exec.Command("git", "clone", "--bare", "--single-branch", repoURL, tmpDir)
@@ -285,67 +230,71 @@ func cloneRepo(repoURL string) ([]CommitStats, map[string]int, error) {
 
 	if err := cloneCmd.Run(); err != nil {
 		log.Printf("Git clone failed for %s: %v - stderr: %s", repoURL, err, cloneStderr.String())
-		return nil, nil, err
+		return nil, err
 	}
 	cloneDuration := time.Since(cloneStart)
 	log.Printf("[TIMING] *** Git clone completed: %v ***", cloneDuration)
 
-	// Check size of cloned repo
 	duCmd := exec.Command("du", "-sh", tmpDir)
 	duOut, _ := duCmd.Output()
 	log.Printf("[DEBUG] Cloned repo size: %s", strings.TrimSpace(string(duOut)))
 
-	// Git log
 	gitLogStart := time.Now()
 	log.Printf("[DEBUG] Starting git log for %s", repoURL)
 	cmd := exec.Command("git",
 		"--git-dir", tmpDir,
 		"log",
-		"--numstat",
+		"--shortstat", // Use shortstat instead of numstat - much faster!
+		"--format=%H|%an|%at|%s",
 		"--diff-algorithm=histogram",
-		"--pretty=format:COMMIT:%H|%an|%at|%s",
 	)
 
 	output, err := cmd.Output()
 	if err != nil {
 		log.Printf("Git log failed for %s: %v ", repoURL, err)
-		return nil, nil, err
+		return nil, err
 	}
 	gitLogDuration := time.Since(gitLogStart)
 	log.Printf("[TIMING] *** Git log completed: %v ***", gitLogDuration)
 	log.Printf("[DEBUG] Git log output size: %d bytes (%.2f MB)", len(output), float64(len(output))/1024/1024)
 
-	// Parsing
 	parseStart := time.Now()
 	log.Printf("[DEBUG] Starting to parse git log output...")
 
-	var commits []CommitStats
-	fileTouchCounts := make(map[string]int)
-	lines := strings.Split(string(output), "\n")
-	log.Printf("[DEBUG] Total lines to parse: %d", len(lines))
+	// Estimate capacity for better memory allocation
+	estimatedCommits := len(output) / 200
+	commits := make([]CommitStats, 0, estimatedCommits)
+
+	scanner := bufio.NewScanner(bytes.NewReader(output))
+	buf := make([]byte, 1024*1024)
+	scanner.Buffer(buf, 10*1024*1024)
 
 	lineParseStart := time.Now()
 	var currentCommit *CommitStats
 	commitCount := 0
+	lineCount := 0
 
-	for i, line := range lines {
-		if i > 0 && i%10000 == 0 {
-			log.Printf("[DEBUG] Parsed %d lines (%.1f%%), %d commits so far... (elapsed: %v)",
-				i, float64(i)/float64(len(lines))*100, commitCount, time.Since(lineParseStart))
+	for scanner.Scan() {
+		line := scanner.Text()
+		lineCount++
+
+		if lineCount > 0 && lineCount%10000 == 0 {
+			log.Printf("[DEBUG] Parsed %d lines, %d commits so far... (elapsed: %v)",
+				lineCount, commitCount, time.Since(lineParseStart))
 		}
 
 		if line == "" {
 			continue
 		}
 
-		if strings.HasPrefix(line, "COMMIT:") {
+		// Check if this is a commit header (contains |)
+		if strings.Contains(line, "|") {
 			if currentCommit != nil {
 				commits = append(commits, *currentCommit)
 				commitCount++
 			}
 
-			commitLine := strings.TrimPrefix(line, "COMMIT:")
-			parts := strings.SplitN(commitLine, "|", 4)
+			parts := strings.SplitN(line, "|", 4)
 			if len(parts) == 4 {
 				timestamp, err := strconv.ParseInt(parts[2], 10, 64)
 				if err != nil {
@@ -353,42 +302,23 @@ func cloneRepo(repoURL string) ([]CommitStats, map[string]int, error) {
 				}
 				date := time.Unix(timestamp, 0)
 				currentCommit = &CommitStats{
-					Hash:              parts[0],
-					Author:            parts[1],
-					Date:              date,
-					Message:           parts[3],
-					Added:             0,
-					Removed:           0,
-					FilesTouchedCount: 0,
+					Hash:    parts[0],
+					Author:  parts[1],
+					Date:    date,
+					Message: parts[3],
+					Added:   0,
+					Removed: 0,
 				}
 			}
-		} else if currentCommit != nil {
-			tabFields := strings.Split(line, "\t")
-
-			if len(tabFields) >= 3 {
-				addedStr := tabFields[0]
-				removedStr := tabFields[1]
-				fileName := tabFields[2]
-
-				added := 0
-				removed := 0
-				if addedStr != "-" {
-					if parsed, err := strconv.Atoi(addedStr); err == nil {
-						added = parsed
-					}
+		} else if currentCommit != nil && strings.Contains(line, "changed") {
+			// Parse shortstat: " 1 file changed, 10 insertions(+), 5 deletions(-)"
+			fields := strings.Fields(line)
+			for i, field := range fields {
+				if i > 0 && (field == "insertion(+)," || field == "insertions(+)," || field == "insertion(+)" || field == "insertions(+)") {
+					currentCommit.Added, _ = strconv.Atoi(fields[i-1])
 				}
-				if removedStr != "-" {
-					if parsed, err := strconv.Atoi(removedStr); err == nil {
-						removed = parsed
-					}
-				}
-
-				currentCommit.Added += added
-				currentCommit.Removed += removed
-
-				if fileName != "" {
-					currentCommit.FilesTouchedCount++
-					fileTouchCounts[fileName]++
+				if i > 0 && (field == "deletion(-)," || field == "deletions(-)," || field == "deletion(-)" || field == "deletions(-)") {
+					currentCommit.Removed, _ = strconv.Atoi(fields[i-1])
 				}
 			}
 		}
@@ -400,8 +330,8 @@ func cloneRepo(repoURL string) ([]CommitStats, map[string]int, error) {
 	}
 
 	parseDuration := time.Since(parseStart)
-	log.Printf("[TIMING] *** Parsing completed: %v ***", parseDuration)
-	log.Printf("[DEBUG] Parsed %d commits, %d unique files", len(commits), len(fileTouchCounts))
+	log.Printf("[TIMING] *** Parsing completed: %v *** for repo: %s", parseDuration, repoURL)
+	log.Printf("[DEBUG] Parsed %d commits", len(commits))
 
 	log.Printf("[TIMING] === CLONE REPO BREAKDOWN ===")
 	log.Printf("[TIMING] - Temp dir creation: included in overall")
@@ -411,7 +341,7 @@ func cloneRepo(repoURL string) ([]CommitStats, map[string]int, error) {
 	log.Printf("[TIMING] - Total cloneRepo: %v", time.Since(overallStart))
 	log.Printf("[TIMING] ================================")
 
-	return commits, fileTouchCounts, nil
+	return commits, nil
 }
 
 func isNotFoundError(err error) bool {

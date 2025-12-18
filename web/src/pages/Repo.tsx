@@ -34,7 +34,7 @@ async function analyzeRepo(username: string, repo: string) {
     totalRemoved: number
     totalContributors: number
     commits: CommitStats[]
-    mostTouchedFiles: FileTouchCount[]
+    // mostTouchedFiles: FileTouchCount[]
   }>
 }
 
@@ -134,7 +134,7 @@ export default function Repo() {
           <TopContributors commits={commitsThisYear} />
           <FileCountDistribution commits={commitsThisYear} />
           <CommitWordCloud commits={commitsThisYear} />
-          <FileHeatmap mostTouchedFiles={data.mostTouchedFiles} />
+          {/* <FileHeatmap mostTouchedFiles={data.mostTouchedFiles} /> */}
         </div>
       </div>
     </div>
