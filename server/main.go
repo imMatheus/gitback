@@ -54,7 +54,7 @@ func main() {
 	})
 
 	app.Post("/api/analyze", analyzeRepo)
-	app.Get("/top-repos", getTopRepos)
+	app.Get("/api/top-repos", getTopRepos)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -242,7 +242,6 @@ func getTopRepos(c *fiber.Ctx) error {
 
 	return c.JSON(fiber.Map{
 		"repos": repos,
-		"count": len(repos),
 	})
 }
 

@@ -12,3 +12,12 @@ export type FileTouchCount = {
   file: string
   count: number
 }
+
+export type Repository = {
+  username: string
+  repoName: string
+  totalAdditions: number
+  totalLines: number
+  totalRemovals: number
+  linesHistogram: number[]
+}

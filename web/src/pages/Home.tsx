@@ -1,3 +1,5 @@
+import type { Repository } from '@/types'
+import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 
@@ -27,6 +29,16 @@ export default function Home() {
       }
     }
   }
+
+  const { data: topRepos } = useQuery<{ repos: Repository[] }>({
+    queryKey: ['topRepos'],
+    queryFn: () =>
+      fetch(`${import.meta.env.VITE_API_URL}/api/top-repos`).then((res) =>
+        res.json()
+      ),
+  })
+
+  console.log({ topRepos })
 
   return (
     <div className="flex h-full min-h-screen flex-col px-4">

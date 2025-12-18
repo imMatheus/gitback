@@ -12,7 +12,7 @@ import { CommitWordCloud } from '@/components/commit-wordcloud'
 import { FileCountDistribution } from '@/components/file-count-distributionProps'
 
 async function analyzeRepo(username: string, repo: string) {
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+  const apiUrl = import.meta.env.VITE_API_URL
   const response = await fetch(`${apiUrl}/api/analyze`, {
     method: 'POST',
     headers: {
