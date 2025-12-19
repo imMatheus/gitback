@@ -77,8 +77,8 @@ export const CommitGrid: React.FC<CommitGridProps> = ({ commits }) => {
             The most commits in a day was{' '}
             <span className="bg-polar-sand text-obsidian-field rounded-full px-2.5 py-0.5 font-bold">
               {maxCommitsInADay}
-            </span>{' '}
-            commits in the year of 2025. The repo averaged{' '}
+            </span>
+            , averaged{' '}
             <span className="bg-pinky text-obsidian-field rounded-full px-2.5 py-0.5 font-bold">
               {Math.round(commits.length / 365).toFixed(1)}
             </span>{' '}
@@ -86,7 +86,11 @@ export const CommitGrid: React.FC<CommitGridProps> = ({ commits }) => {
             <span className="bg-ion-drift text-obsidian-field rounded-full px-2.5 py-0.5 font-bold">
               {longestStreak}
             </span>{' '}
-            days.
+            days and had a total of{' '}
+            <span className="bg-alloy-ember text-obsidian-field rounded-full px-2.5 py-0.5 font-bold">
+              {commits.length.toLocaleString()}
+            </span>{' '}
+            commits all in the year of 2025.
           </>
         )}
       </p>
