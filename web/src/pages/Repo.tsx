@@ -10,6 +10,7 @@ import { TopContributors } from '@/components/top-contributors'
 import { CommitWordCloud } from '@/components/commit-wordcloud'
 // import { FileHeatmap } from '@/components/file-heatmap'
 import { FileCountDistribution } from '@/components/file-count-distributionProps'
+import { CommitGrid } from '@/components/commit-grid'
 
 async function analyzeRepo(username: string, repo: string) {
   const apiUrl = import.meta.env.VITE_API_URL
@@ -87,10 +88,14 @@ export default function Repo() {
             />
           </Link>
         </div>
-        <div className="mb-10 flex items-center justify-between">
+        <div className="mb-10 flex flex-wrap items-center justify-between gap-3">
           <div className="">
-            <h1 className="mb-3 text-5xl font-black tracking-tight">{repo}</h1>
-            <h3 className="text-xl font-medium tracking-tight">{username}</h3>
+            <h1 className="mb-1 text-3xl font-black tracking-tight lg:mb-3 lg:text-5xl">
+              {repo}
+            </h1>
+            <h3 className="text-lg font-medium tracking-tight lg:text-xl">
+              {username}
+            </h3>
           </div>
 
           <a
@@ -169,6 +174,8 @@ export default function Repo() {
           <TopContributors commits={commitsThisYear} />
           <FileCountDistribution commits={commitsThisYear} />
           <CommitWordCloud commits={commitsThisYear} />
+
+          <CommitGrid commits={commitsThisYear} />
           {/* <FileHeatmap mostTouchedFiles={data.mostTouchedFiles} /> */}
         </div>
       </div>
