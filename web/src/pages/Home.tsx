@@ -140,6 +140,17 @@ export default function Home() {
           </div>
         </div>
 
+        <div className="mt-10 lg:mt-20">
+          <h3 className="mb-1 text-4xl font-black tracking-wide">
+            What is this?
+          </h3>
+          <p className="mb-5 text-lg leading-relaxed font-semibold">
+            This is a project that lets you see interesting stats about any
+            GitHub repository. Wether it's lines of code over time, commits over
+            time, top contributors, or even the craziest week of the year.
+          </p>
+        </div>
+
         <div className="relative left-1/2 mt-20 w-fit max-w-screen -translate-x-1/2 overflow-x-hidden">
           <BottomUi />
         </div>
@@ -190,7 +201,7 @@ const Leaderboard = () => {
             <th className="pr-4 pb-2 text-left">Repository</th>
             <th className="pr-4 pb-2 text-left">Views</th>
             <th className="pr-4 pb-2 text-left">Total Lines</th>
-            <th className="pr-4 pb-2 text-left"></th>
+            <th className="pr-4 pb-2 text-left">LOC graph</th>
           </tr>
         </thead>
         <tbody>
@@ -261,7 +272,11 @@ const Leaderboard = () => {
 }
 
 const BottomUi = () => {
-  const Tab = ({ color }: { color: 'pink' | 'blue' | 'orange' | 'amber' }) => (
+  const Tab = ({
+    color,
+  }: {
+    color: 'pink' | 'blue' | 'orange' | 'amber' | 'white'
+  }) => (
     <div
       className={`h-10 w-20 shrink-0 rounded-full transition-all duration-1000 ease-in-out hover:w-28 hover:duration-150 ${
         color === 'pink'
@@ -270,7 +285,9 @@ const BottomUi = () => {
             ? 'bg-ion-drift'
             : color === 'amber'
               ? 'bg-alloy-ember'
-              : 'bg-core-flux'
+              : color === 'white'
+                ? 'bg-polar-sand'
+                : 'bg-core-flux'
       }`}
     ></div>
   )
@@ -278,31 +295,42 @@ const BottomUi = () => {
   return (
     <div className="space-y-1.5">
       <div className="flex justify-center gap-1.5">
+        <Tab color="amber" />
+        <Tab color="pink" />
+        <Tab color="blue" />
+        <Tab color="white" />
+        <Tab color="amber" />
+        <Tab color="pink" />
+        <Tab color="blue" />
         <Tab color="orange" />
+        <Tab color="white" />
+      </div>
+      <div className="flex justify-center gap-1.5">
         <Tab color="blue" />
         <Tab color="orange" />
         <Tab color="amber" />
         <Tab color="pink" />
-        <Tab color="orange" />
         <Tab color="blue" />
-        <Tab color="amber" />
         <Tab color="orange" />
         <Tab color="pink" />
         <Tab color="amber" />
+      </div>
+      <div className="flex justify-center gap-1.5">
+        <Tab color="pink" />
+        <Tab color="white" />
         <Tab color="orange" />
+        <Tab color="amber" />
+        <Tab color="pink" />
+        <Tab color="orange" />
+        <Tab color="white" />
       </div>
       <div className="flex justify-center gap-1.5">
         <Tab color="amber" />
-        <Tab color="blue" />
         <Tab color="pink" />
-        <Tab color="orange" />
-        <Tab color="pink" />
-        <Tab color="amber" />
-        <Tab color="orange" />
         <Tab color="blue" />
-        <Tab color="amber" />
         <Tab color="orange" />
-        <Tab color="blue" />
+        <Tab color="white" />
+        <Tab color="amber" />
       </div>
     </div>
   )

@@ -62,7 +62,14 @@ export const CommitGrid: React.FC<CommitGridProps> = ({ commits }) => {
           ? 'No commits were made in the year of 2025.'
           : `The most commits in a day was ${maxCommitsInADay} commits in the year of 2025.`}
       </p>
-      <div className="grid grid-flow-col grid-cols-[repeat(53,1fr)] grid-rows-7 gap-px sm:gap-[4px]">
+      <div className="grid grid-flow-col grid-cols-[auto_repeat(53,1fr)] grid-rows-7 gap-px sm:gap-[4px]">
+        <div className="pr-1 text-xs font-semibold opacity-50"></div>
+        <div className="pr-1 text-xs font-semibold opacity-50">Tue</div>
+        <div className="pr-1 text-xs font-semibold opacity-50"></div>
+        <div className="pr-1 text-xs font-semibold opacity-50">Thu</div>
+        <div className="pr-1 text-xs font-semibold opacity-50"></div>
+        <div className="pr-1 text-xs font-semibold opacity-50">Sat</div>
+        <div className="pr-1 text-xs font-semibold opacity-50"></div>
         {offsetDays.map((day) => (
           <div key={day} className="bg-transparent"></div>
         ))}
@@ -77,7 +84,7 @@ export const CommitGrid: React.FC<CommitGridProps> = ({ commits }) => {
               count === 0
                 ? 'bg-[#2A1413]'
                 : count > maxCommitsInADay * 0.8
-                  ? 'bg-[#EB603E]'
+                  ? 'bg-[#EE7759]'
                   : count > maxCommitsInADay * 0.65
                     ? 'bg-[#BB4D34]'
                     : count > maxCommitsInADay * 0.4
@@ -100,7 +107,7 @@ export const CommitGrid: React.FC<CommitGridProps> = ({ commits }) => {
         <div className="size-4 rounded-sm border border-black/10 bg-[#5B271E]"></div>
         <div className="size-4 rounded-sm border border-black/10 bg-[#8B3A29]"></div>
         <div className="size-4 rounded-sm border border-black/10 bg-[#BB4D34]"></div>
-        <div className="size-4 rounded-sm border border-black/10 bg-[#EB603E]"></div>
+        <div className="size-4 rounded-sm border border-black/10 bg-[#EE7759]"></div>
         <p className="ml-1 text-xs font-semibold">More</p>
       </div>
     </div>
