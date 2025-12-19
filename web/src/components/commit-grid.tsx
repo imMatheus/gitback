@@ -20,10 +20,12 @@ const getAllDaysInYear = (year: number) => {
   return days
 }
 
+const colors = ['#2A1413', '#EE7759', '#BB4D34', '#8B3A29', '#5B271E']
+
 export const CommitGrid: React.FC<CommitGridProps> = ({ commits }) => {
   console.log({ commits })
   const [hoverDay, setHoverDay] = useState<string | null>(null)
-  const { daysArray, maxCommitsInADay } = useMemo(() => {
+  const { daysArray, maxCommitsInADay, longestStreak } = useMemo(() => {
     const dayToCommitMap = getAllDaysInYear(2025)
 
     let maxCommitsInADay = 0
@@ -39,7 +41,20 @@ export const CommitGrid: React.FC<CommitGridProps> = ({ commits }) => {
       return new Date(a[0]).getTime() - new Date(b[0]).getTime()
     })
 
-    return { daysArray, maxCommitsInADay }
+    let longestStreak = 0
+    let currentStreak = 0
+    for (const [_, count] of daysArray) {
+      if (count > 0) {
+        currentStreak++
+        if (currentStreak > longestStreak) {
+          longestStreak = currentStreak
+        }
+      } else {
+        currentStreak = 0
+      }
+    }
+
+    return { daysArray, maxCommitsInADay, longestStreak }
   }, [commits])
 
   const firstDate = new Date(daysArray[0][0])
@@ -51,15 +66,29 @@ export const CommitGrid: React.FC<CommitGridProps> = ({ commits }) => {
       ? []
       : Array.from({ length: Math.abs(firstDayOfTheWeek - 1) }, (_, i) => i + 1)
 
-  const colors = ['#2A1413', '#EE7759', '#BB4D34', '#8B3A29', '#5B271E']
-
   return (
     <div>
       <h3 className="mb-2 text-6xl font-black">Commit Grid</h3>
-      <p className="mb-5 text-xl font-semibold">
-        {maxCommitsInADay === 0
-          ? 'No commits were made in the year of 2025.'
-          : `The most commits in a day was ${maxCommitsInADay} commits in the year of 2025.`}
+      <p className="mb-5 text-xl leading-relaxed font-semibold">
+        {maxCommitsInADay === 0 ? (
+          'No commits were made in the year of 2025, boooooring...'
+        ) : (
+          <>
+            The most commits in a day was{' '}
+            <span className="bg-polar-sand text-obsidian-field rounded-full px-2.5 py-0.5 font-bold">
+              {maxCommitsInADay}
+            </span>{' '}
+            commits in the year of 2025. The repo averaged{' '}
+            <span className="bg-pinky text-obsidian-field rounded-full px-2.5 py-0.5 font-bold">
+              {Math.round(commits.length / 365).toFixed(1)}
+            </span>{' '}
+            commits per day with the longest streak of{' '}
+            <span className="bg-ion-drift text-obsidian-field rounded-full px-2.5 py-0.5 font-bold">
+              {longestStreak}
+            </span>{' '}
+            days.
+          </>
+        )}
       </p>
       <div className="grid grid-flow-col grid-cols-[auto_repeat(53,1fr)] grid-rows-7 gap-px sm:gap-[4px]">
         <div className="pr-1 text-xs font-semibold opacity-50"></div>

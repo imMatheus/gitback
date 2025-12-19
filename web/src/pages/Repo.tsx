@@ -174,19 +174,27 @@ export default function Repo() {
           </div>
         </div>
 
-        <div className="mt-52 space-y-52">
-          <CraziestWeek stats={commitsThisYear} />
-          <TopContributors commits={commitsThisYear} />
-          <FileCountDistribution commits={commitsThisYear} />
-          <CommitWordCloud commits={commitsThisYear} />
-          <BiggestCommits
-            commits={commitsThisYear}
-            repo={repo}
-            username={username}
-          />
-          <CommitGrid commits={commitsThisYear} />
-          {/* <FileHeatmap mostTouchedFiles={data.mostTouchedFiles} /> */}
-        </div>
+        {commitsThisYear.length > 0 ? (
+          <div className="mt-52 space-y-52">
+            <CraziestWeek stats={commitsThisYear} />
+            <TopContributors commits={commitsThisYear} />
+            <FileCountDistribution commits={commitsThisYear} />
+            <CommitWordCloud commits={commitsThisYear} />
+            <BiggestCommits
+              commits={commitsThisYear}
+              repo={repo}
+              username={username}
+            />
+            <CommitGrid commits={commitsThisYear} />
+            {/* <FileHeatmap mostTouchedFiles={data.mostTouchedFiles} /> */}
+          </div>
+        ) : (
+          <div className="mt-52 space-y-52">
+            <p className="text-2xl font-semibold">
+              No commits were made in the year of 2025, boooooring...
+            </p>
+          </div>
+        )}
       </div>
     </div>
   )

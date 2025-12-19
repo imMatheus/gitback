@@ -197,7 +197,7 @@ const Leaderboard = () => {
       <table className="w-full table-auto">
         <thead>
           <tr className="text-sm font-semibold">
-            <th className="pr-5 pb-2 text-right">Rank</th>
+            <th className="w-0 pr-5 pb-2 text-right">Rank</th>
             <th className="pr-4 pb-2 text-left">Repository</th>
             <th className="pr-4 pb-2 text-left">Views</th>
             <th className="pr-4 pb-2 text-left">Total Lines</th>
@@ -221,7 +221,7 @@ const Leaderboard = () => {
                 key={repo.username + repo.repoName}
                 className="text-xl font-semibold"
               >
-                <td className="flex justify-end rounded-full p-1 pr-3 text-right">
+                <td className="flex justify-end rounded-full py-1 pr-3 text-right">
                   <div
                     className={cn(
                       'text-obsidian-field w-max rounded-full px-4 text-center font-black',
