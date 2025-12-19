@@ -1,4 +1,3 @@
-import { cn } from '@/lib/utils'
 import type { CommitStats } from '@/types'
 import { format } from 'date-fns'
 import React, { useMemo, useState } from 'react'
