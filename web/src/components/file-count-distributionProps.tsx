@@ -58,9 +58,9 @@ const DistributionBar: React.FC<DistributionBarProps> = ({
   )
 }
 
-export const FileCountDistribution: React.FC<FileCountDistributionProps> = ({
-  commits,
-}) => {
+export const FileCountDistribution: React.FC<
+  FileCountDistributionProps
+> = () => {
   const distribution = {
     '1': 0,
     '2-15': 0,
@@ -70,33 +70,33 @@ export const FileCountDistribution: React.FC<FileCountDistributionProps> = ({
     '200+': 0,
   }
 
-  for (const commit of commits) {
-    if (commit.filesTouchedCount === 1) {
-      distribution['1']++
-    } else if (
-      commit.filesTouchedCount >= 2 &&
-      commit.filesTouchedCount <= 15
-    ) {
-      distribution['2-15']++
-    } else if (
-      commit.filesTouchedCount >= 16 &&
-      commit.filesTouchedCount <= 30
-    ) {
-      distribution['16-30']++
-    } else if (
-      commit.filesTouchedCount >= 31 &&
-      commit.filesTouchedCount <= 70
-    ) {
-      distribution['31-70']++
-    } else if (
-      commit.filesTouchedCount >= 71 &&
-      commit.filesTouchedCount <= 200
-    ) {
-      distribution['71-200']++
-    } else {
-      distribution['200+']++
-    }
-  }
+  // for (const commit of commits) {
+  //   if (commit.filesTouchedCount === 1) {
+  //     distribution['1']++
+  //   } else if (
+  //     commit.filesTouchedCount >= 2 &&
+  //     commit.filesTouchedCount <= 15
+  //   ) {
+  //     distribution['2-15']++
+  //   } else if (
+  //     commit.filesTouchedCount >= 16 &&
+  //     commit.filesTouchedCount <= 30
+  //   ) {
+  //     distribution['16-30']++
+  //   } else if (
+  //     commit.filesTouchedCount >= 31 &&
+  //     commit.filesTouchedCount <= 70
+  //   ) {
+  //     distribution['31-70']++
+  //   } else if (
+  //     commit.filesTouchedCount >= 71 &&
+  //     commit.filesTouchedCount <= 200
+  //   ) {
+  //     distribution['71-200']++
+  //   } else {
+  //     distribution['200+']++
+  //   }
+  // }
 
   const maxValue = Math.max(...Object.values(distribution))
 
