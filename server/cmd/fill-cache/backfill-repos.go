@@ -39,7 +39,7 @@ func main() {
 		// {"microsoft", "vscode"},
 		// {"facebook", "react"},
 		// {"microsoft", "TypeScript"},
-		{"vercel", "next.js"},
+		// {"vercel", "next.js"},
 		// {"kubernetes", "kubernetes"},
 		// {"tensorflow", "tensorflow"},
 		// {"golang", "go"},
@@ -55,17 +55,24 @@ func main() {
 		// {"angular", "angular"},
 		// {"dotnet", "aspnetcore"},
 		// {"docker", "compose"},
-		{"spring-projects", "spring-boot"},
-		{"laravel", "laravel"},
-		{"expressjs", "express"},
-		{"nestjs", "nest"},
-		{"sveltejs", "svelte"},
-		{"nuxt", "nuxt"},
-		{"remix-run", "remix"},
-		{"fastapi", "fastapi"},
-		{"gin-gonic", "gin"},
-		{"gofiber", "fiber"},
-		{"torvalds", "linux"},
+		// {"airbnb", "javascript"},
+		// {"mui", "material-ui"},
+		// {"axios", "axios"},
+		// {"mrdoob", "three.js"},
+		// {"lodash", "lodash"},
+		// {"moment", "moment"},
+		// {"chartjs", "Chart.js"},
+		// {"spring-projects", "spring-boot"},
+		// {"laravel", "laravel"},
+		// {"expressjs", "express"},
+		// {"nestjs", "nest"},
+		// {"sveltejs", "svelte"},
+		// {"nuxt", "nuxt"},
+		// {"remix-run", "remix"},
+		// {"fastapi", "fastapi"},
+		// {"gin-gonic", "gin"},
+		// {"gofiber", "fiber"},
+		// {"torvalds", "linux"},
 	}
 
 	fmt.Printf("Filling cache with %d popular repositories...\n", len(repos))
@@ -83,8 +90,8 @@ func main() {
 		wg           sync.WaitGroup
 	)
 
-	// Semaphore to limit concurrency to 2
-	sem := make(chan struct{}, 2)
+	// Semaphore to limit concurrency to 5
+	sem := make(chan struct{}, 8)
 
 	for i, repo := range repos {
 		wg.Add(1)

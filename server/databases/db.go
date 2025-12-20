@@ -48,6 +48,10 @@ type RepoData struct {
 	TotalRemovals  int    `json:"totalRemovals"`
 	Views          int    `json:"views"`
 	LinesHistogram []int  `json:"linesHistogram"` // 10 data points showing LOC over time
+	TotalStars     int    `json:"totalStars"`
+	TotalCommits   int    `json:"totalCommits"`
+	Language       string `json:"language"`
+	Size           int    `json:"size"`
 }
 
 type CommitStats struct {
@@ -79,14 +83,22 @@ func SaveRepo(data RepoData) error {
 			total_removals, 
 			views, 
 			lines_histogram,
+			total_stars,
+			total_commits,
+			language,
+			size_kb,
 			updated_at
-		) VALUES ($1, $2, $3, $4, $5, 0, $6, NOW())
+		) VALUES ($1, $2, $3, $4, $5, 0, $6, $7, $8, $9, $10, NOW())
 		ON CONFLICT (username, repo_name) 
 		DO UPDATE SET
 			total_additions = EXCLUDED.total_additions,
 			total_lines = EXCLUDED.total_lines,
 			total_removals = EXCLUDED.total_removals,
 			lines_histogram = EXCLUDED.lines_histogram,
+			total_stars = EXCLUDED.total_stars,
+			total_commits = EXCLUDED.total_commits,
+			language = EXCLUDED.language,
+			size_kb = EXCLUDED.size_kb,
 			updated_at = NOW()
 	`
 
@@ -98,6 +110,10 @@ func SaveRepo(data RepoData) error {
 		data.TotalLines,
 		data.TotalRemovals,
 		string(histogramJSON),
+		data.TotalStars,
+		data.TotalCommits,
+		data.Language,
+		data.Size,
 	)
 
 	if err != nil {
@@ -176,8 +192,9 @@ func GetTopRepos() ([]RepoData, error) {
 	}
 
 	query := `
-		SELECT username, repo_name, total_additions, total_lines, total_removals, views, lines_histogram
+		SELECT username, repo_name, total_additions, total_lines, total_removals, views, lines_histogram, total_stars, total_commits
 		FROM repos
+		WHERE repo_name != 'linux'
 		ORDER BY total_lines DESC
 	`
 
@@ -200,6 +217,8 @@ func GetTopRepos() ([]RepoData, error) {
 			&data.TotalRemovals,
 			&data.Views,
 			&histogramJSON,
+			&data.TotalStars,
+			&data.TotalCommits,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan repo row: %w", err)

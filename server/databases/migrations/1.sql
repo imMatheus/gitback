@@ -9,6 +9,10 @@ CREATE TABLE repos (
     lines_histogram JSONB NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    total_stars INTEGER DEFAULT 0,
+    language VARCHAR(100) DEFAULT '',
+    size_kb INTEGER DEFAULT 0,
+    total_commits INTEGER DEFAULT 0,
     CONSTRAINT unique_repo UNIQUE (username, repo_name)
 );
 

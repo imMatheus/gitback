@@ -1,14 +1,13 @@
 import { Link, useParams } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 import { CommitGraph } from '../components/commit-graph'
-import type { CommitStats } from '@/types'
+import type { CommitStats, GitHubRepo } from '@/types'
 import { LoadingAnimation } from '@/components/loading-animation'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import NotFound from './NotFound'
 import { TopContributors } from '@/components/top-contributors'
 import { CommitWordCloud } from '@/components/commit-wordcloud'
-// import { FileHeatmap } from '@/components/file-heatmap'
 import { FileCountDistribution } from '@/components/file-count-distributionProps'
 import { CommitGrid } from '@/components/commit-grid'
 import { BiggestCommits } from '@/components/biggest-commits'
@@ -31,12 +30,12 @@ async function analyzeRepo(username: string, repo: string) {
   }
 
   return response.json() as Promise<{
-    message: string
     totalAdded: number
     totalRemoved: number
     totalContributors: number
+    totalCommits: number
     commits: CommitStats[]
-    // mostTouchedFiles: FileTouchCount[]
+    github?: GitHubRepo
   }>
 }
 

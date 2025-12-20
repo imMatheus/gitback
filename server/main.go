@@ -3,16 +3,20 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"os/exec"
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/compress"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/joho/godotenv"
@@ -43,6 +47,12 @@ func main() {
 	app := fiber.New(fiber.Config{
 		AppName: "GitBack v1.0.0",
 	})
+
+	// this is lowkey insane, makes payloads like 4x smaller
+	// rails when it was 20,057kB, now it's 7,001kB
+	app.Use(compress.New(compress.Config{
+		Level: compress.LevelBestSpeed, // Fast compression
+	}))
 
 	app.Use(logger.New())
 	app.Use(cors.New(cors.Config{
@@ -151,24 +161,24 @@ func analyzeRepo(c *fiber.Ctx) error {
 	log.Printf("=== Starting analysis for: %s ===", repoURL)
 
 	// Check cache first
-	cacheStart := time.Now()
-	if cachedData, err := storage.GetFromCache(req.Username, req.Repo); err != nil {
-		log.Printf("Cache check failed: %v", err)
-	} else if cachedData != nil {
-		log.Printf("[TIMING] Cache lookup: %v - CACHE HIT", time.Since(cacheStart))
-		log.Printf("Returning cached analysis for %s", repoURL)
+	// cacheStart := time.Now()
+	// if cachedData, err := storage.GetFromCache(req.Username, req.Repo); err != nil {
+	// 	log.Printf("Cache check failed: %v", err)
+	// } else if cachedData != nil {
+	// 	log.Printf("[TIMING] Cache lookup: %v - CACHE HIT", time.Since(cacheStart))
+	// 	log.Printf("Returning cached analysis for %s", repoURL)
 
-		// Update view count in background
-		go func() {
-			if err := database.IncrementViews(req.Username, req.Repo); err != nil {
-				log.Printf("[DB] Failed to increment views for %s: %v", repoURL, err)
-			}
-		}()
+	// 	// Update view count in background
+	// 	go func() {
+	// 		if err := database.IncrementViews(req.Username, req.Repo); err != nil {
+	// 			log.Printf("[DB] Failed to increment views for %s: %v", repoURL, err)
+	// 		}
+	// 	}()
 
-		return c.JSON(cachedData)
-	} else {
-		log.Printf("[TIMING] Cache lookup: %v - CACHE MISS", time.Since(cacheStart))
-	}
+	// 	return c.JSON(cachedData)
+	// } else {
+	// 	log.Printf("[TIMING] Cache lookup: %v - CACHE MISS", time.Since(cacheStart))
+	// }
 
 	logRequestSystemStats()
 
@@ -208,6 +218,22 @@ func analyzeRepo(c *fiber.Ctx) error {
 	log.Printf("Analysis completed for %s: %d commits, %d contributors, +%d/-%d lines",
 		repoURL, len(commits), totalContributors, totalAdded, totalRemoved)
 
+	// Fetch GitHub repo info and stars history in parallel
+	var githubInfo *GitHubRepo
+
+	// Use goroutines to fetch GitHub data in parallel
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	go func() {
+		defer wg.Done()
+		if repoInfo, err := fetchGitHubRepoInfo(req.Username, req.Repo); err == nil {
+			githubInfo = repoInfo
+		}
+	}()
+
+	wg.Wait()
+
 	go func() {
 		histogram := database.CalculateLinesHistogram(commits, 10)
 
@@ -223,6 +249,10 @@ func analyzeRepo(c *fiber.Ctx) error {
 			TotalLines:     totalLines,
 			TotalRemovals:  totalRemoved,
 			LinesHistogram: histogram,
+			TotalStars:     githubInfo.StargazersCount,
+			TotalCommits:   len(commits),
+			Language:       githubInfo.Language,
+			Size:           githubInfo.Size,
 		}
 
 		if err := database.SaveRepo(dbData); err != nil {
@@ -239,11 +269,12 @@ func analyzeRepo(c *fiber.Ctx) error {
 	}()
 
 	response := fiber.Map{
-		"message":           "Analysis completed",
 		"totalAdded":        totalAdded,
 		"totalRemoved":      totalRemoved,
 		"totalContributors": totalContributors,
+		"totalCommits":      len(commits),
 		"commits":           commits,
+		"github":            githubInfo,
 	}
 
 	// Store in cache asynchronously
@@ -300,6 +331,47 @@ func logRequestSystemStats() {
 }
 
 type CommitStats = database.CommitStats
+
+type GitHubRepo struct {
+	StargazersCount int    `json:"stargazers_count"`
+	Language        string `json:"language"`
+	Size            int    `json:"size"`
+}
+
+var githubClient = &http.Client{
+	Timeout: 30 * time.Second,
+}
+
+func fetchGitHubRepoInfo(username, repo string) (*GitHubRepo, error) {
+	url := fmt.Sprintf("https://api.github.com/repos/%s/%s", username, repo)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Add GitHub token if available for higher rate limits
+	if token := os.Getenv("GITHUB_TOKEN"); token != "" {
+		req.Header.Set("Authorization", "token "+token)
+	}
+	req.Header.Set("Accept", "application/vnd.github.v3+json")
+
+	resp, err := githubClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("GitHub API returned status %d", resp.StatusCode)
+	}
+
+	var repoInfo GitHubRepo
+	if err := json.NewDecoder(resp.Body).Decode(&repoInfo); err != nil {
+		return nil, err
+	}
+
+	return &repoInfo, nil
+}
 
 func cloneRepo(repoURL string) ([]CommitStats, error) {
 	overallStart := time.Now()
@@ -369,19 +441,10 @@ func cloneRepo(repoURL string) ([]CommitStats, error) {
 	buf := make([]byte, 1024*1024)
 	scanner.Buffer(buf, 10*1024*1024)
 
-	lineParseStart := time.Now()
 	var currentCommit *CommitStats
-	commitCount := 0
-	lineCount := 0
 
 	for scanner.Scan() {
 		line := scanner.Text()
-		lineCount++
-
-		if lineCount > 0 && lineCount%10000 == 0 {
-			log.Printf("[DEBUG] Parsed %d lines, %d commits so far... (elapsed: %v)",
-				lineCount, commitCount, time.Since(lineParseStart))
-		}
 
 		if line == "" {
 			continue
@@ -391,7 +454,6 @@ func cloneRepo(repoURL string) ([]CommitStats, error) {
 		if strings.Contains(line, "|") {
 			if currentCommit != nil {
 				commits = append(commits, *currentCommit)
-				commitCount++
 			}
 
 			parts := strings.SplitN(line, "|", 4)
@@ -426,14 +488,11 @@ func cloneRepo(repoURL string) ([]CommitStats, error) {
 
 	if currentCommit != nil {
 		commits = append(commits, *currentCommit)
-		commitCount++
 	}
 
 	parseDuration := time.Since(parseStart)
-	log.Printf("[TIMING] *** Parsing completed: %v *** for repo: %s", parseDuration, repoURL)
-	log.Printf("[DEBUG] Parsed %d commits", len(commits))
 
-	log.Printf("[TIMING] === CLONE REPO BREAKDOWN ===")
+	log.Printf("[TIMING] === CLONE REPO BREAKDOWN OF %s ===", repoURL)
 	log.Printf("[TIMING] - Temp dir creation: included in overall")
 	log.Printf("[TIMING] - Git clone: %v (%.1f%%)", cloneDuration, float64(cloneDuration)/float64(time.Since(overallStart))*100)
 	log.Printf("[TIMING] - Git log: %v (%.1f%%)", gitLogDuration, float64(gitLogDuration)/float64(time.Since(overallStart))*100)

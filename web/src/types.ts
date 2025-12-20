@@ -21,4 +21,12 @@ export type Repository = {
   totalRemovals: number
   views: number
   linesHistogram: number[]
+  totalStars: number
+  totalCommits: number
+}
+
+export type GitHubRepo = {
+  stargazers_count: number
+  language: string
+  size: number
 }

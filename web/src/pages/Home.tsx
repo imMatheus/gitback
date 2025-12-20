@@ -227,6 +227,7 @@ const Leaderboard = () => {
             <th className="w-0 pr-5 pb-2 text-right">Rank</th>
             <th className="pr-4 pb-2 text-left">Repository</th>
             <th className="pr-4 pb-2 text-left">Views</th>
+            <th className="pr-4 pb-2 text-left">Stars</th>
             <th className="pr-4 pb-2 text-left">Total Lines</th>
             <th className="pr-4 pb-2 text-left">LOC graph</th>
           </tr>
@@ -274,6 +275,9 @@ const Leaderboard = () => {
                 </td>
                 <td className="p-1 pr-4 text-left font-black">
                   {repo.views.toLocaleString()}
+                </td>
+                <td className="p-1 pr-4 text-left font-black">
+                  {repo.totalStars.toLocaleString()}
                 </td>
                 <td className="p-1 pr-4 text-left font-black">
                   {repo.totalLines.toLocaleString()}
