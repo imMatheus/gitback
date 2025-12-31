@@ -5,6 +5,7 @@ export type CommitStats = {
   added: number
   removed: number
   message: string
+  filesTouchedCount: number
 }
 
 export type CommitStatsAPI = {
@@ -14,6 +15,7 @@ export type CommitStatsAPI = {
   '+': number // added
   '-': number // removed
   m: string // message
+  f: number // filesTouchedCount
 }
 
 export type FileTouchCount = {

@@ -52,6 +52,7 @@ async function analyzeRepo(username: string, repo: string) {
           added: commit['+'] ?? 0,
           removed: commit['-'] ?? 0,
           message: commit.m,
+          filesTouchedCount: commit.f ?? 0,
         }) as CommitStats
     ),
     github: data.github,

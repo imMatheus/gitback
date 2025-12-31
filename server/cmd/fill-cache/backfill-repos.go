@@ -9,6 +9,9 @@ import (
 	"os"
 	"sync"
 	"time"
+
+	"github.com/joho/godotenv"
+	database "github.com/immatheus/gitback/databases"
 )
 
 type AnalyzeRequest struct {
@@ -23,19 +26,105 @@ type AnalyzeResponse struct {
 	TotalContributors int    `json:"totalContributors"`
 }
 
+type RepoInfo struct {
+	Username string
+	Repo     string
+}
+
+func fetchAllReposFromDB() ([]RepoInfo, error) {
+	if err := database.Init(os.Getenv("DATABASE_URL")); err != nil {
+		return nil, fmt.Errorf("failed to initialize database: %w", err)
+	}
+	defer database.Close()
+
+	repos, err := database.GetTopRepos()
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch repos from database: %w", err)
+	}
+
+	var repoInfos []RepoInfo
+	for _, repo := range repos {
+		repoInfos = append(repoInfos, RepoInfo{
+			Username: repo.Username,
+			Repo:     repo.RepoName,
+		})
+	}
+
+	return repoInfos, nil
+}
+
+func mergeAndDeduplicateRepos(dbRepos []RepoInfo, hardcodedRepos []struct {
+	Username string
+	Repo     string
+}) []struct {
+	Username string
+	Repo     string
+} {
+	// Create a map to track unique repos
+	repoMap := make(map[string]struct {
+		Username string
+		Repo     string
+	})
+
+	// Add all hardcoded repos first
+	for _, repo := range hardcodedRepos {
+		key := fmt.Sprintf("%s/%s", repo.Username, repo.Repo)
+		repoMap[key] = repo
+	}
+
+	// Add DB repos, overwriting if they already exist (hardcoded takes precedence)
+	for _, repo := range dbRepos {
+		key := fmt.Sprintf("%s/%s", repo.Username, repo.Repo)
+		if _, exists := repoMap[key]; !exists {
+			repoMap[key] = struct {
+				Username string
+				Repo     string
+			}{
+				Username: repo.Username,
+				Repo:     repo.Repo,
+			}
+		}
+	}
+
+	// Convert back to slice
+	var mergedRepos []struct {
+		Username string
+		Repo     string
+	}
+	for _, repo := range repoMap {
+		mergedRepos = append(mergedRepos, repo)
+	}
+
+	return mergedRepos
+}
+
 func main() {
+	// Load environment variables
+	godotenv.Load()
+
 	// Get API URL from environment or use default
 	apiURL := os.Getenv("API_URL")
 	if apiURL == "" {
 		apiURL = "http://localhost:8080"
 	}
 
-	// List of popular GitHub repositories
-	repos := []struct {
+	// Fetch all repos from database
+	log.Printf("Fetching existing repositories from database...")
+	dbRepos, err := fetchAllReposFromDB()
+	if err != nil {
+		log.Printf("Warning: Failed to fetch repos from database: %v", err)
+		log.Printf("Continuing with only hardcoded repositories...")
+		dbRepos = []RepoInfo{} // Use empty slice if DB fetch fails
+	} else {
+		log.Printf("Found %d repositories in database", len(dbRepos))
+	}
+
+	// List of popular GitHub repositories (hardcoded)
+	hardcodedRepos := []struct {
 		Username string
 		Repo     string
 	}{
-		// {"immatheus", "css-subway-surfer"},
+		{"immatheus", "css-subway-surfer"},
 		// {"microsoft", "vscode"},
 		// {"facebook", "react"},
 		// {"microsoft", "TypeScript"},
@@ -47,7 +136,7 @@ func main() {
 		// {"nodejs", "node"},
 		// {"pytorch", "pytorch"},
 		// {"django", "django"},
-		// {"ansible", "ansible"},
+		{"ansible", "ansible"},
 		// {"elastic", "elasticsearch"},
 		// {"apache", "spark"},
 		// {"rails", "rails"},
@@ -75,9 +164,15 @@ func main() {
 		// {"torvalds", "linux"},
 	}
 
-	fmt.Printf("Filling cache with %d popular repositories...\n", len(repos))
+	// Merge and deduplicate repos from DB and hardcoded list
+	log.Printf("Merging %d database repos with %d hardcoded repos...", len(dbRepos), len(hardcodedRepos))
+	repos := mergeAndDeduplicateRepos(dbRepos, hardcodedRepos)
+	log.Printf("Final merged list contains %d unique repositories", len(repos))
+
+	fmt.Printf("Filling cache with %d repositories (%d from DB + %d hardcoded, deduplicated)...\n", 
+		len(repos), len(dbRepos), len(hardcodedRepos))
 	fmt.Printf("API URL: %s\n", apiURL)
-	fmt.Printf("Running 2 requests in parallel\n\n")
+	fmt.Printf("Running 8 requests in parallel\n\n")
 
 	client := &http.Client{
 		Timeout: 10 * time.Minute, // Some repos might take a while

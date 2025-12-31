@@ -56,12 +56,13 @@ type RepoData struct {
 
 // we do this weird json names to minify the payload size, its small but it matters at scale
 type CommitStats struct {
-	Hash    string `json:"h"`
-	Author  string `json:"a"`
-	Date    int64  `json:"d"`
-	Added   int    `json:"+,omitempty"`
-	Removed int    `json:"-,omitempty"`
-	Message string `json:"m,omitempty"`
+	Hash             string `json:"h"`
+	Author           string `json:"a"`
+	Date             int64  `json:"d"`
+	Added            int    `json:"+,omitempty"`
+	Removed          int    `json:"-,omitempty"`
+	Message          string `json:"m,omitempty"`
+	FilesTouchedCount int    `json:"f,omitempty"`
 }
 
 func SaveRepo(data RepoData) error {

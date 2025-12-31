@@ -15,7 +15,7 @@ interface DistributionBarProps {
 
 const maxHeight = '400px'
 
-const ALL_BARS = ['1', '2-15', '16-30', '31-70', '71-200', '200+']
+const ALL_BARS = ['1', '2-5', '6-20', '21-70', '71-150', '150+']
 
 const DistributionBar: React.FC<DistributionBarProps> = ({
   label,
@@ -58,47 +58,44 @@ const DistributionBar: React.FC<DistributionBarProps> = ({
   )
 }
 
-export const FileCountDistribution: React.FC<
-  FileCountDistributionProps
-> = () => {
+export const FileCountDistribution: React.FC<FileCountDistributionProps> = ({
+  commits,
+}) => {
   const distribution = {
     '1': 0,
-    '2-15': 0,
-    '16-30': 0,
-    '31-70': 0,
-    '71-200': 0,
-    '200+': 0,
+    '2-5': 0,
+    '6-20': 0,
+    '21-70': 0,
+    '71-150': 0,
+    '150+': 0,
   }
 
-  // for (const commit of commits) {
-  //   if (commit.filesTouchedCount === 1) {
-  //     distribution['1']++
-  //   } else if (
-  //     commit.filesTouchedCount >= 2 &&
-  //     commit.filesTouchedCount <= 15
-  //   ) {
-  //     distribution['2-15']++
-  //   } else if (
-  //     commit.filesTouchedCount >= 16 &&
-  //     commit.filesTouchedCount <= 30
-  //   ) {
-  //     distribution['16-30']++
-  //   } else if (
-  //     commit.filesTouchedCount >= 31 &&
-  //     commit.filesTouchedCount <= 70
-  //   ) {
-  //     distribution['31-70']++
-  //   } else if (
-  //     commit.filesTouchedCount >= 71 &&
-  //     commit.filesTouchedCount <= 200
-  //   ) {
-  //     distribution['71-200']++
-  //   } else {
-  //     distribution['200+']++
-  //   }
-  // }
+  for (const commit of commits) {
+    if (commit.filesTouchedCount === 1) {
+      distribution['1']++
+    } else if (commit.filesTouchedCount >= 2 && commit.filesTouchedCount <= 5) {
+      distribution['2-5']++
+    } else if (
+      commit.filesTouchedCount >= 6 &&
+      commit.filesTouchedCount <= 20
+    ) {
+      distribution['6-20']++
+    } else if (
+      commit.filesTouchedCount >= 21 &&
+      commit.filesTouchedCount <= 70
+    ) {
+      distribution['21-70']++
+    } else if (
+      commit.filesTouchedCount >= 71 &&
+      commit.filesTouchedCount <= 150
+    ) {
+      distribution['71-150']++
+    } else if (commit.filesTouchedCount > 150) {
+      distribution['150+']++
+    }
+  }
 
-  const maxValue = Math.max(...Object.values(distribution))
+  const maxValue = Math.max(...Object.values(distribution), 1)
 
   const bars = ALL_BARS.sort((a, b) => {
     const aValue = distribution[a as keyof typeof distribution]

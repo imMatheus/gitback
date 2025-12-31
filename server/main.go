@@ -103,7 +103,7 @@ func logSystemInfo() {
 }
 
 // for dev only
-const skipCache = false
+const skipCache = true
 
 func testNetworkSpeed() {
 	start := time.Now()
@@ -468,7 +468,7 @@ func cloneRepo(repoURL string) ([]CommitStats, error) {
 	cmd := exec.Command("git",
 		"--git-dir", tmpDir,
 		"log",
-		"--shortstat", // Use shortstat instead of numstat - much faster!
+		"--numstat", // Use numstat to get individual file changes and count files
 		"--format=%H|%an|%at|%s",
 		"--diff-algorithm=histogram",
 	)
@@ -513,23 +513,28 @@ func cloneRepo(repoURL string) ([]CommitStats, error) {
 				}
 				date := time.Unix(timestamp, 0)
 				currentCommit = &CommitStats{
-					Hash:    parts[0][:7],
-					Author:  parts[1],
-					Date:    date.Unix(),
-					Message: truncateMessage(parts[3], 100),
-					Added:   0,
-					Removed: 0,
+					Hash:              parts[0][:7],
+					Author:            parts[1],
+					Date:              date.Unix(),
+					Message:           truncateMessage(parts[3], 100),
+					Added:             0,
+					Removed:           0,
+					FilesTouchedCount: 0,
 				}
 			}
-		} else if currentCommit != nil && strings.Contains(line, "changed") {
-			// Parse shortstat: " 1 file changed, 10 insertions(+), 5 deletions(-)"
-			fields := strings.Fields(line)
-			for i, field := range fields {
-				if i > 0 && (field == "insertion(+)," || field == "insertions(+)," || field == "insertion(+)" || field == "insertions(+)") {
-					currentCommit.Added, _ = strconv.Atoi(fields[i-1])
+		} else if currentCommit != nil && strings.Contains(line, "\t") {
+			// Parse numstat: "5\t3\tfile.txt" (added, removed, filename)
+			fields := strings.SplitN(line, "\t", 3)
+			if len(fields) >= 3 {
+				// Count this as one file touched
+				currentCommit.FilesTouchedCount++
+
+				// Add the line changes
+				if added, err := strconv.Atoi(fields[0]); err == nil {
+					currentCommit.Added += added
 				}
-				if i > 0 && (field == "deletion(-)," || field == "deletions(-)," || field == "deletion(-)" || field == "deletions(-)") {
-					currentCommit.Removed, _ = strconv.Atoi(fields[i-1])
+				if removed, err := strconv.Atoi(fields[1]); err == nil {
+					currentCommit.Removed += removed
 				}
 			}
 		}
