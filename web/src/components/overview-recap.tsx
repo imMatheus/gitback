@@ -1,17 +1,80 @@
-import React, { useLayoutEffect, useMemo, useState } from 'react'
+import React, { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { CommitStats, GitHubSearchResult } from '@/types'
 import { format } from 'date-fns'
+import html2canvas from 'html2canvas-pro'
 
 interface OverviewRecapProps {
   commits: CommitStats[]
   pullRequests: GitHubSearchResult | null
+  repoName: string
+  username: string
 }
 
 export const OverviewRecap: React.FC<OverviewRecapProps> = ({
   commits,
   pullRequests,
+  repoName,
+  username,
 }) => {
-  console.log({ commits, pullRequests })
+  const cardRef = useRef<HTMLDivElement>(null)
+  const [isCopied, setIsCopied] = useState(false)
+
+  const copyCardAsImage = async () => {
+    if (!cardRef.current) return
+
+    try {
+      setIsCopied(true)
+
+      const canvas = await html2canvas(cardRef.current, {
+        backgroundColor: '#f5f1e8', // bg-polar-sand color
+        scale: 2, // Higher resolution
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+      })
+
+      // Convert canvas to blob
+      const blob = await new Promise<Blob | null>((resolve) => {
+        canvas.toBlob(resolve, 'image/png', 1.0)
+      })
+
+      if (!blob) {
+        console.error('Failed to create blob from canvas')
+        return
+      }
+
+      // Check if clipboard API is available
+      if (navigator.clipboard && window.ClipboardItem) {
+        try {
+          const clipboardItem = new ClipboardItem({
+            'image/png': blob,
+          })
+          await navigator.clipboard.write([clipboardItem])
+
+          // Show "Copied" feedback
+          setTimeout(() => setIsCopied(false), 1000)
+        } catch {
+          // Fallback: download the image
+          downloadImage(blob)
+        }
+      } else {
+        console.log('Clipboard API not available, downloading instead...')
+        downloadImage(blob)
+      }
+    } catch {}
+  }
+
+  const downloadImage = (blob: Blob) => {
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'git-overview-card.png'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    alert('Image downloaded instead!')
+  }
 
   const [documentSize, setDocumentSize] = useState(() => ({
     x: document.documentElement.clientWidth,
@@ -77,8 +140,6 @@ export const OverviewRecap: React.FC<OverviewRecapProps> = ({
     .slice(0, 3)
     .map(([_, contributor]) => contributor)
 
-  console.log({ maxValue, linesHistogram })
-
   const { daysArray } = useMemo(() => {
     const dayToCommitMap = getAllDaysInYear(2025)
 
@@ -99,133 +160,149 @@ export const OverviewRecap: React.FC<OverviewRecapProps> = ({
   }, [commits])
 
   return (
-    <div
-      className="flex-center relative w-full px-4"
-      style={{ height: scale * CARD_SIZE }}
-    >
+    <div className="">
       <div
-        className="mx-auto shrink-0"
-        style={{
-          width: CARD_SIZE,
-          height: CARD_SIZE,
-          transform: `scale(${scale})`,
-          transformOrigin: 'center center',
-        }}
+        className="flex-center relative w-full px-4"
+        style={{ height: scale * CARD_SIZE }}
       >
-        <div className="bg-polar-sand text-obsidian-field grid size-full grid-cols-2 gap-3 p-4">
-          <div className="flex flex-col">
-            <div className="flex-1 space-y-10">
-              {/* <div className="bg-core-flux mb-4 w-max rounded-full px-4 py-2 text-lg font-bold">
+        <div
+          ref={cardRef}
+          className="mx-auto shrink-0"
+          style={{
+            width: CARD_SIZE,
+            height: CARD_SIZE,
+            transform: `scale(${scale})`,
+            transformOrigin: 'center center',
+          }}
+        >
+          <div className="bg-polar-sand text-obsidian-field grid size-full grid-cols-2 gap-3 p-4">
+            <div className="flex flex-col">
+              <div className="flex-1 space-y-10">
+                {/* <div className="bg-core-flux mb-4 w-max rounded-full px-4 py-2 text-lg font-bold">
                 YEAR OF 2025
               </div> */}
-              <div className="">
-                <p className="bg-core-flux mb-2 w-max rounded-full px-3 py-1 text-sm font-bold">
-                  Overview
-                </p>
-
-                <div className="grid grid-cols-2 gap-2 gap-y-4">
-                  <div className="">
-                    <h4 className="text-sm font-semibold">Total commits</h4>
-                    <p className="text-3xl font-black">
-                      {commits.length.toLocaleString()}
-                    </p>
-                  </div>
-
-                  <div className="">
-                    <h4 className="text-sm font-semibold">Total lines added</h4>
-                    <p className="text-3xl font-black">
-                      {totalLinesAdded >= 1_000_000
-                        ? `${(totalLinesAdded / 1_000_000).toFixed(1)}m`
-                        : totalLinesAdded >= 1_000
-                          ? `${(totalLinesAdded / 1_000).toFixed(1)}k`
-                          : totalLinesAdded.toLocaleString()}
-                    </p>
-                  </div>
-
-                  <div className="">
-                    <h4 className="text-sm font-semibold">Contributors</h4>
-                    <p className="text-3xl font-black">
-                      {uniqueAuthors.toLocaleString()}
-                    </p>
-                  </div>
-
-                  <div className="">
-                    <h4 className="text-sm font-semibold">Total PRs</h4>
-                    <p className="text-3xl font-black">
-                      {pullRequests?.total_count.toLocaleString() ?? 10}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="">
-                {/* <p className="mb-2 text-sm font-semibold"> */}
-                <p className="bg-ion-drift mb-2 w-max rounded-full px-3 py-1 text-sm font-bold">
-                  Lines per month
-                </p>
-
-                <div className="flex h-10 items-end gap-0.5">
-                  {linesHistogram.map((line, index) => (
-                    <div
-                      key={index}
-                      className="bg-ion-drift flex-1 rounded-none"
-                      style={{
-                        height: `${(line / maxValue) * 100}%`,
-                        minHeight: '8px',
-                      }}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              <div className="">
-                <p className="bg-pinky mb-2 w-max rounded-full px-3 py-1 text-sm font-bold">
-                  Top contributors
-                </p>
                 <div className="">
-                  {sortedContributors.map((contributor, index) => (
-                    <p
-                      key={contributor.name}
-                      className="truncate text-2xl font-bold"
-                    >
-                      #{index + 1} {contributor.name}
-                    </p>
-                  ))}
+                  <p className="bg-core-flux mb-2 w-max rounded-full px-3 py-1 text-sm font-bold">
+                    {username}/{repoName}
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-2 gap-y-4">
+                    <div className="">
+                      <h4 className="text-sm font-semibold">Total commits</h4>
+                      <p className="text-3xl font-black">
+                        {commits.length.toLocaleString()}
+                      </p>
+                    </div>
+
+                    <div className="">
+                      <h4 className="text-sm font-semibold">
+                        Total lines added
+                      </h4>
+                      <p className="text-3xl font-black">
+                        {totalLinesAdded >= 1_000_000
+                          ? `${(totalLinesAdded / 1_000_000).toFixed(1)}m`
+                          : totalLinesAdded >= 1_000
+                            ? `${(totalLinesAdded / 1_000).toFixed(1)}k`
+                            : totalLinesAdded.toLocaleString()}
+                      </p>
+                    </div>
+
+                    <div className="">
+                      <h4 className="text-sm font-semibold">Contributors</h4>
+                      <p className="text-3xl font-black">
+                        {uniqueAuthors.toLocaleString()}
+                      </p>
+                    </div>
+
+                    <div className="">
+                      <h4 className="text-sm font-semibold">Total PRs</h4>
+                      <p className="text-3xl font-black">
+                        {pullRequests?.total_count.toLocaleString() ?? 10}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="">
+                  <p className="bg-pinky mb-2 w-max rounded-full px-3 py-1 text-sm font-bold">
+                    Top contributors
+                  </p>
+                  <div className="">
+                    {sortedContributors.map((contributor, index) => (
+                      <p
+                        key={contributor.name}
+                        className="truncate text-2xl font-bold"
+                      >
+                        #{index + 1} {contributor.name}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="">
+                  {/* <p className="mb-2 text-sm font-semibold"> */}
+                  <p className="bg-ion-drift mb-2 w-max rounded-full px-3 py-1 text-sm font-bold">
+                    Lines per month
+                  </p>
+
+                  <div className="flex h-10 items-end gap-0.5">
+                    {linesHistogram.map((line, index) => (
+                      <div
+                        key={index}
+                        className="bg-ion-drift flex-1 rounded-none"
+                        style={{
+                          height: `${(line / maxValue) * 100}%`,
+                          minHeight: '8px',
+                        }}
+                      />
+                    ))}
+                  </div>
                 </div>
               </div>
+
+              <p className="shrink-0 text-xl font-bold">
+                {'>'} gitback.immatheus.com
+              </p>
             </div>
 
-            <p className="shrink-0 text-xl font-bold">
-              {'>'} gitback.immatheus.com
-            </p>
-          </div>
+            <div className="grid size-full min-h-0 grid-cols-[repeat(12,1fr)] justify-center gap-0">
+              {daysArray.map(([day, count]) => (
+                <div className="flex-center size-full" key={day}>
+                  <div
+                    className="aspect-square size-full rounded-full border border-black/10"
+                    style={{
+                      maxHeight: 13,
+                      maxWidth: 13,
+                      background: count === 0 ? colors[0] : colors[1],
 
-          <div className="grid size-full min-h-0 grid-cols-[repeat(12,1fr)] justify-center gap-0">
-            {daysArray.map(([day, count]) => (
-              <div className="flex-center size-full" key={day}>
-                <div
-                  className="aspect-square size-full rounded-full border border-black/10"
-                  style={{
-                    maxHeight: 13,
-                    maxWidth: 13,
-                    background: count === 0 ? colors[0] : colors[1],
-
-                    //   background:
-                    //   count === 0
-                    //     ? colors[0]
-                    //     : count > maxCommitsInADay * 0.7
-                    //       ? colors[1]
-                    //       : count > maxCommitsInADay * 0.55
-                    //         ? colors[2]
-                    //         : count > maxCommitsInADay * 0.32
-                    //           ? colors[3]
-                    //           : colors[4],
-                  }}
-                ></div>
-              </div>
-            ))}
+                      //   background:
+                      //   count === 0
+                      //     ? colors[0]
+                      //     : count > maxCommitsInADay * 0.7
+                      //       ? colors[1]
+                      //       : count > maxCommitsInADay * 0.55
+                      //         ? colors[2]
+                      //         : count > maxCommitsInADay * 0.32
+                      //           ? colors[3]
+                      //           : colors[4],
+                    }}
+                  ></div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
+      </div>
+
+      <div className="mt-4 flex items-center justify-center">
+        <button
+          onClick={copyCardAsImage}
+          className="bg-pinky flex-center text-obsidian-field cursor-pointer gap-2 rounded-full px-4 py-2 text-lg font-bold transition-all hover:px-6"
+          title="Copy card as image"
+          style={{ minWidth: '80px' }}
+        >
+          {isCopied ? 'Copied!' : 'Copy'}
+        </button>
       </div>
     </div>
   )
@@ -280,5 +357,6 @@ const getAllDaysInYear = (year: number) => {
 
 // const colors = ['#f00', '#0ff', '#BB4D34', '#8B3A29', '#0f0']
 // const colors = ['#2e1615', '#EB603E', '#B1482F', '#b88826', '#76301F']
-const colors = ['#2e1615', '#b88826', '#B1482F', '#943C27', '#76301F']
+const colors = ['#2e1615', '#eb603e', '#B1482F', '#943C27', '#76301F']
+// const colors = ['#2e1615', '#b88826', '#B1482F', '#943C27', '#76301F']
 // const colors = ['#2A1413', '#EE7759', '#BB4D34', '#8B3A29', '#5B271E']

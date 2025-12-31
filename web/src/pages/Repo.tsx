@@ -215,6 +215,8 @@ export default function Repo() {
             <OverviewRecap
               commits={commitsThisYear}
               pullRequests={data.pullRequests}
+              repoName={repo}
+              username={username}
             />
             {/* <FileHeatmap mostTouchedFiles={data.mostTouchedFiles} /> */}
           </div>
