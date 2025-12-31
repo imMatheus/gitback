@@ -229,6 +229,7 @@ const Leaderboard = () => {
             <th className="pr-4 pb-2 text-left">Repository</th>
             <th className="pr-4 pb-2 text-left">Views</th>
             <th className="pr-4 pb-2 text-left">Stars</th>
+            <th className="pr-4 pb-2 text-left">Commits</th>
             <th className="pr-4 pb-2 text-left">Total Lines</th>
             <th className="pr-4 pb-2 text-left">LOC graph</th>
           </tr>
@@ -278,10 +279,22 @@ const Leaderboard = () => {
                   {repo.views.toLocaleString()}
                 </td>
                 <td className="p-1 pr-4 text-left font-black">
-                  {repo.totalStars.toLocaleString()}
+                  {Intl.NumberFormat('en', {
+                    notation: 'compact',
+                    maximumFractionDigits: 1,
+                  }).format(repo.totalStars)}
                 </td>
                 <td className="p-1 pr-4 text-left font-black">
-                  {repo.totalLines.toLocaleString()}
+                  {Intl.NumberFormat('en', {
+                    notation: 'compact',
+                    maximumFractionDigits: 1,
+                  }).format(repo.totalCommits)}
+                </td>
+                <td className="p-1 pr-4 text-left font-black">
+                  {Intl.NumberFormat('en', {
+                    notation: 'compact',
+                    maximumFractionDigits: 1,
+                  }).format(repo.totalLines)}
                 </td>
                 <td
                   className="p-1 pr-4 text-left"

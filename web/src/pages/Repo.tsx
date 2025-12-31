@@ -1,10 +1,6 @@
 import { Link, useParams } from 'react-router'
-import { useQuery } from '@tanstack/react-query'
 import { CommitGraph } from '../components/commit-graph'
-import type { CommitStats, AnalyzeResponse, WeekData, DayData } from '@/types'
 import { LoadingAnimation } from '@/components/loading-animation'
-import { cn } from '@/lib/utils'
-import { format } from 'date-fns'
 import NotFound from './NotFound'
 import { TopContributors } from '@/components/top-contributors'
 import { CommitWordCloud } from '@/components/commit-wordcloud'
@@ -13,61 +9,15 @@ import { CommitGrid } from '@/components/commit-grid'
 import { BiggestCommits } from '@/components/biggest-commits'
 import { TopGitHubPRs } from '@/components/top-github-prs'
 import { OverviewRecap } from '@/components/overview-recap'
-
-async function analyzeRepo(username: string, repo: string) {
-  const apiUrl = import.meta.env.VITE_API_URL
-  const response = await fetch(`${apiUrl}/api/analyze`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ username, repo }),
-  })
-
-  if (!response.ok) {
-    if (response.status === 404) {
-      throw new Error('NOT_FOUND')
-    }
-    throw new Error('Failed to analyze repository')
-  }
-
-  const data = (await response.json()) as AnalyzeResponse
-
-  return {
-    totalAdded: data.totalAdded,
-    totalRemoved: data.totalRemoved,
-    totalContributors: data.totalContributors,
-    totalCommits: data.totalCommits,
-    commits: data.commits.map(
-      (commit) =>
-        ({
-          hash: commit.h,
-          author: commit.a,
-          date: new Date(commit.d * 1000).toISOString(),
-          added: commit['+'] ?? 0,
-          removed: commit['-'] ?? 0,
-          message: commit.m,
-          filesTouchedCount: commit.f ?? 0,
-        }) as CommitStats
-    ),
-    github: data.github,
-    pullRequests: data.pullRequests || null,
-  }
-}
+import { CraziestWeek } from '@/components/CraziestWeek'
+import { useRepository } from '@/hooks/useRepository'
 
 const THIS_YEAR = 2025
 
 export default function Repo() {
   const { username, repo } = useParams<{ username: string; repo: string }>()
 
-  const { data, isLoading, isError, error } = useQuery({
-    queryKey: ['repo', username, repo],
-    queryFn: () => analyzeRepo(username!, repo!),
-    enabled: !!username && !!repo,
-    retry: 3,
-    retryDelay: 400,
-    refetchOnMount: false,
-  })
+  const { data, isLoading, isError, isNotFound } = useRepository(username, repo)
 
   if (isLoading) {
     return (
@@ -81,20 +31,32 @@ export default function Repo() {
     return <NotFound isRepo={true} />
   }
 
+  if (isNotFound) {
+    return <NotFound isRepo={true} />
+  }
+
   if (isError || !data) {
-    if (error instanceof Error && error.message === 'NOT_FOUND') {
-      return <NotFound isRepo={true} />
-    }
     return (
-      <div>
-        Error: {error instanceof Error ? error.message : 'Failed to analyze'}
+      <div className="flex h-screen w-full items-center justify-center">
+        <div className="text-center">
+          <h2 className="mb-4 text-2xl font-bold text-red-600">
+            Analysis Failed
+          </h2>
+          <p className="mb-4 text-gray-600">
+            Failed to analyze repository. Please try again later.
+          </p>
+          <Link
+            to="/"
+            className="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
+          >
+            Go Home
+          </Link>
+        </div>
       </div>
     )
   }
 
-  const commitsThisYear = data.commits.filter(
-    (commit) => new Date(commit.date).getFullYear() === THIS_YEAR
-  )
+  const { commits, commitsThisYear, hasCommitsThisYear } = data
 
   return (
     <div className="mx-auto min-h-screen max-w-6xl pt-4 pb-32">
@@ -157,7 +119,7 @@ export default function Repo() {
 
         <div className="my-10">
           <CommitGraph
-            commits={data.commits}
+            commits={commits}
             totalContributors={data.totalContributors}
             totalAdded={data.totalAdded}
             totalRemoved={data.totalRemoved}
@@ -196,7 +158,7 @@ export default function Repo() {
           <TopGitHubPRs prs={data.pullRequests.items} />
         )}
 
-        {commitsThisYear.length > 0 ? (
+        {hasCommitsThisYear ? (
           <div className="mt-52 space-y-52">
             <CraziestWeek stats={commitsThisYear} />
             <TopContributors commits={commitsThisYear} />
@@ -218,187 +180,14 @@ export default function Repo() {
               repoName={repo}
               username={username}
             />
-            {/* <FileHeatmap mostTouchedFiles={data.mostTouchedFiles} /> */}
           </div>
         ) : (
           <div className="mt-52 space-y-52">
             <p className="text-2xl font-semibold">
-              No commits were made in the year of 2025, boooooring...
+              No commits were made in the year of {THIS_YEAR}, boooooring...
             </p>
           </div>
         )}
-      </div>
-    </div>
-  )
-}
-
-function getWeekStart(date: Date): Date {
-  const d = new Date(date)
-  const day = d.getDay()
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1) // Adjust when day is Sunday
-  d.setDate(diff)
-  return d
-}
-
-function getWeekKey(date: Date): string {
-  const weekStart = getWeekStart(date)
-  return weekStart.toISOString().split('T')[0]
-}
-
-function getDayName(date: Date): string {
-  return date.toLocaleDateString('en-US', { weekday: 'long' })
-}
-
-function findCraziestWeek(stats: CommitStats[]): {
-  weekData: WeekData
-  dayData: DayData[]
-} | null {
-  if (stats.length === 0) return null
-
-  // Group commits by week
-  const weekMap = new Map<string, CommitStats[]>()
-  for (const stat of stats) {
-    const date = new Date(stat.date)
-    const weekKey = getWeekKey(date)
-    if (!weekMap.has(weekKey)) {
-      weekMap.set(weekKey, [])
-    }
-    weekMap.get(weekKey)!.push(stat)
-  }
-
-  // Find the week with the most commits
-  let maxCommits = 0
-  let craziestWeekKey: string | null = null
-
-  for (const [weekKey, commits] of weekMap.entries()) {
-    if (commits.length > maxCommits) {
-      maxCommits = commits.length
-      craziestWeekKey = weekKey
-    }
-  }
-
-  if (!craziestWeekKey) return null
-
-  const weekCommits = weekMap.get(craziestWeekKey)!
-  const weekStart = getWeekStart(new Date(weekCommits[0].date))
-
-  // Group commits by day of the week
-  const dayMap = new Map<string, CommitStats[]>()
-  for (const stat of weekCommits) {
-    const date = new Date(stat.date)
-    const dayName = getDayName(date)
-    if (!dayMap.has(dayName)) {
-      dayMap.set(dayName, [])
-    }
-    dayMap.get(dayName)!.push(stat)
-  }
-
-  // Convert to array - include all days
-  const dayOrder = [
-    'Monday',
-    'Tuesday',
-    'Wednesday',
-    'Thursday',
-    'Friday',
-    'Saturday',
-    'Sunday',
-  ]
-  const dayData: DayData[] = dayOrder
-    .map((dayName) => {
-      const commits = dayMap.get(dayName) || []
-      return {
-        dayName,
-        commits,
-        count: commits.length,
-      }
-    })
-    .sort((a, b) => b.count - a.count) // Sort by commit count descending
-
-  return {
-    weekData: {
-      weekStart,
-      commits: weekCommits,
-      totalCommits: weekCommits.length,
-    },
-    dayData,
-  }
-}
-
-interface CraziestWeekProps {
-  stats: CommitStats[]
-}
-
-const colorClasses = [
-  'bg-core-flux',
-  'bg-ion-drift',
-  'bg-pinky',
-  'bg-polar-sand',
-  'bg-alloy-ember',
-]
-
-function CraziestWeek({ stats }: CraziestWeekProps) {
-  const result = findCraziestWeek(stats)
-
-  if (!result) {
-    return null
-  }
-
-  const { weekData, dayData } = result
-  const maxDayCommits = Math.max(...dayData.map((d) => d.count), 1)
-
-  return (
-    <div className="">
-      <h3 className="mb-2 text-5xl font-black">Most commits in one week</h3>
-      <p className="mb-4 text-xl font-semibold">
-        {format(weekData.weekStart, 'MMMM d, yyyy')}
-      </p>
-
-      <h3 className="mb-5 text-6xl font-black">
-        {weekData.totalCommits.toLocaleString()} commits
-      </h3>
-      <div className="max-w-2xl space-y-2">
-        {dayData.map((day, index) => {
-          const widthPercent =
-            maxDayCommits > 0 ? (day.count / maxDayCommits) * 100 : 0
-          const colorClass = colorClasses[index % colorClasses.length]
-          const heightClass =
-            index === 0
-              ? 'h-24 hover:h-28'
-              : index === 1
-                ? 'h-20 hover:h-24'
-                : index === 2
-                  ? 'h-16 hover:h-20'
-                  : 'h-12 hover:h-16'
-
-          return (
-            <div
-              key={day.dayName}
-              className="grid grid-cols-[1fr_auto] items-center gap-x-7"
-            >
-              <div
-                className={`${colorClass} ${heightClass} flex items-center rounded-full px-5 transition-all duration-1000 ease-in-out hover:duration-150`}
-                style={{
-                  minWidth: 'min-content',
-                  width: `${Math.max(widthPercent, day.count > 0 ? 5 : 0)}%`,
-                }}
-              >
-                <p
-                  className={cn('text-obsidian-field font-bold', {
-                    'text-4xl': index === 0,
-                    'text-3xl': index === 1,
-                    'text-2xl': index === 2,
-                    'text-xl': index > 2,
-                  })}
-                >
-                  {day.dayName}
-                </p>
-              </div>
-              <p className="text-2xl font-bold">
-                {day.count.toLocaleString()} commits
-              </p>
-            </div>
-          )
-        })}
       </div>
     </div>
   )

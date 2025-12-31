@@ -1,0 +1,176 @@
+import { useMemo } from 'react'
+import { format } from 'date-fns'
+import { cn } from '@/lib/utils'
+import type { CommitStats, WeekData, DayData } from '@/types'
+
+function getWeekStart(date: Date): Date {
+  const d = new Date(date)
+  const day = d.getDay()
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1)
+  d.setDate(diff)
+  return d
+}
+
+function getWeekKey(date: Date): string {
+  const weekStart = getWeekStart(date)
+  return weekStart.toISOString().split('T')[0]
+}
+
+function getDayName(date: Date): string {
+  return date.toLocaleDateString('en-US', { weekday: 'long' })
+}
+
+function findCraziestWeek(stats: CommitStats[]): {
+  weekData: WeekData
+  dayData: DayData[]
+} | null {
+  if (stats.length === 0) return null
+
+  // Group commits by week
+  const weekMap = new Map<string, CommitStats[]>()
+  for (const stat of stats) {
+    const date = new Date(stat.date)
+    const weekKey = getWeekKey(date)
+    if (!weekMap.has(weekKey)) {
+      weekMap.set(weekKey, [])
+    }
+    weekMap.get(weekKey)!.push(stat)
+  }
+
+  // Find the week with the most commits
+  let maxCommits = 0
+  let craziestWeekKey: string | null = null
+
+  for (const [weekKey, commits] of weekMap.entries()) {
+    if (commits.length > maxCommits) {
+      maxCommits = commits.length
+      craziestWeekKey = weekKey
+    }
+  }
+
+  if (!craziestWeekKey) return null
+
+  const weekCommits = weekMap.get(craziestWeekKey)!
+  const weekStart = getWeekStart(new Date(weekCommits[0].date))
+
+  // Group commits by day of the week
+  const dayMap = new Map<string, CommitStats[]>()
+  for (const stat of weekCommits) {
+    const date = new Date(stat.date)
+    const dayName = getDayName(date)
+    if (!dayMap.has(dayName)) {
+      dayMap.set(dayName, [])
+    }
+    dayMap.get(dayName)!.push(stat)
+  }
+
+  // Convert to array - include all days
+  const dayOrder = [
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+    'Sunday',
+  ]
+  const dayData: DayData[] = dayOrder
+    .map((dayName) => {
+      const commits = dayMap.get(dayName) || []
+      return {
+        dayName,
+        commits,
+        count: commits.length,
+      }
+    })
+    .sort((a, b) => b.count - a.count) // Sort by commit count descending
+
+  return {
+    weekData: {
+      weekStart,
+      commits: weekCommits,
+      totalCommits: weekCommits.length,
+    },
+    dayData,
+  }
+}
+
+interface CraziestWeekProps {
+  stats: CommitStats[]
+}
+
+const colorClasses = [
+  'bg-core-flux',
+  'bg-ion-drift',
+  'bg-pinky',
+  'bg-polar-sand',
+  'bg-alloy-ember',
+]
+
+export function CraziestWeek({ stats }: CraziestWeekProps) {
+  const result = useMemo(() => findCraziestWeek(stats), [stats])
+
+  if (!result) {
+    return null
+  }
+
+  const { weekData, dayData } = result
+  const maxDayCommits = Math.max(...dayData.map((d) => d.count), 1)
+
+  return (
+    <div className="">
+      <h3 className="mb-2 text-5xl font-black">Most commits in one week</h3>
+      <p className="mb-4 text-xl font-semibold">
+        {format(weekData.weekStart, 'MMMM d, yyyy')}
+      </p>
+
+      <h3 className="mb-5 text-6xl font-black">
+        {weekData.totalCommits.toLocaleString()} commits
+      </h3>
+      <div className="max-w-2xl space-y-2">
+        {dayData.map((day, index) => {
+          const widthPercent =
+            maxDayCommits > 0 ? (day.count / maxDayCommits) * 100 : 0
+          const colorClass = colorClasses[index % colorClasses.length]
+          const heightClass =
+            index === 0
+              ? 'h-24 hover:h-28'
+              : index === 1
+                ? 'h-20 hover:h-24'
+                : index === 2
+                  ? 'h-16 hover:h-20'
+                  : 'h-12 hover:h-16'
+
+          return (
+            <div
+              key={day.dayName}
+              className="grid grid-cols-[1fr_auto] items-center gap-x-7"
+            >
+              <div
+                className={`${colorClass} ${heightClass} flex items-center rounded-full px-5 transition-all duration-1000 ease-in-out hover:duration-150`}
+                style={{
+                  minWidth: 'min-content',
+                  width: `${Math.max(widthPercent, day.count > 0 ? 5 : 0)}%`,
+                }}
+              >
+                <p
+                  className={cn('text-obsidian-field font-bold', {
+                    'text-4xl': index === 0,
+                    'text-3xl': index === 1,
+                    'text-2xl': index === 2,
+                    'text-xl': index > 2,
+                  })}
+                >
+                  {day.dayName}
+                </p>
+              </div>
+              <p className="text-2xl font-bold">
+                {day.count.toLocaleString()} commits
+              </p>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
