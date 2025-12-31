@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/storage"
+	database "github.com/immatheus/gitback/databases"
 )
 
 var (
@@ -54,6 +55,8 @@ func CacheKey(username, repo string) string {
 	return fmt.Sprintf("cache/%s_%s.json", strings.ToLower(username), strings.ToLower(repo))
 }
 
+const CACHE_EXPIRATION = 48 * time.Hour
+
 // GetFromCache retrieves cached analysis data from GCP Storage
 func GetFromCache(username, repo string) (map[string]interface{}, error) {
 	if client == nil {
@@ -76,8 +79,8 @@ func GetFromCache(username, repo string) (map[string]interface{}, error) {
 		return nil, fmt.Errorf("failed to get object attributes: %w", err)
 	}
 
-	// Check if cache is expired (older than 24 hours)
-	if time.Since(attrs.Updated) > 24*time.Hour {
+	// Check if cache is expired (older than 48 hours)
+	if time.Since(attrs.Updated) > CACHE_EXPIRATION {
 		log.Printf("[CACHE] Cache expired for %s/%s, age: %v", username, repo, time.Since(attrs.Updated))
 		// Delete expired cache in background
 		go func() {
@@ -150,6 +153,13 @@ func StoreInCache(username, repo string, data map[string]interface{}) error {
 
 	log.Printf("[CACHE] Successfully cached %s/%s (took %v, size: %.2f KB)",
 		username, repo, time.Since(start), float64(len(jsonData))/1024)
+
+	// Update last cached timestamp in database
+	go func() {
+		if err := database.UpdateLastCachedAt(username, repo); err != nil {
+			log.Printf("[CACHE] Failed to update last cached timestamp for %s/%s: %v", username, repo, err)
+		}
+	}()
 
 	return nil
 }

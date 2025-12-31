@@ -45,6 +45,7 @@ export default function Home() {
               alt="GitBack"
               className="size-10 object-cover"
             />
+            <h3 className="text-2xl font-bold">GitBack</h3>
           </div>
           <div className="flex items-center gap-2">
             <a

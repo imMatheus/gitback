@@ -1,12 +1,7 @@
 import { Link, useParams } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 import { CommitGraph } from '../components/commit-graph'
-import type {
-  CommitStats,
-  AnalyzeResponse,
-  WeekData,
-  DayData,
-} from '@/types'
+import type { CommitStats, AnalyzeResponse, WeekData, DayData } from '@/types'
 import { LoadingAnimation } from '@/components/loading-animation'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
@@ -105,12 +100,13 @@ export default function Repo() {
     <div className="mx-auto min-h-screen max-w-6xl pt-4 pb-32">
       <div className="px-6">
         <div className="mb-4 flex items-center">
-          <Link to={'/'} className="">
+          <Link to={'/'} className="flex items-center gap-2">
             <img
               src="/images/logo.png"
               alt="GitBack"
               className="size-10 object-cover"
             />
+            <h3 className="text-2xl font-bold">GitBack</h3>
           </Link>
         </div>
         <div className="mb-10 flex flex-wrap items-center justify-between gap-3">
@@ -233,7 +229,6 @@ export default function Repo() {
     </div>
   )
 }
-
 
 function getWeekStart(date: Date): Date {
   const d = new Date(date)

@@ -103,7 +103,7 @@ func logSystemInfo() {
 }
 
 // for dev only
-const skipCache = true
+const skipCache = false
 
 func testNetworkSpeed() {
 	start := time.Now()

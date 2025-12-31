@@ -7,11 +7,12 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sort"
 	"sync"
 	"time"
 
-	"github.com/joho/godotenv"
 	database "github.com/immatheus/gitback/databases"
+	"github.com/joho/godotenv"
 )
 
 type AnalyzeRequest struct {
@@ -29,6 +30,13 @@ type AnalyzeResponse struct {
 type RepoInfo struct {
 	Username string
 	Repo     string
+}
+
+type RequestResult struct {
+	Repo     string
+	Duration time.Duration
+	Success  bool
+	Error    string
 }
 
 func fetchAllReposFromDB() ([]RepoInfo, error) {
@@ -169,10 +177,10 @@ func main() {
 	repos := mergeAndDeduplicateRepos(dbRepos, hardcodedRepos)
 	log.Printf("Final merged list contains %d unique repositories", len(repos))
 
-	fmt.Printf("Filling cache with %d repositories (%d from DB + %d hardcoded, deduplicated)...\n", 
+	fmt.Printf("Filling cache with %d repositories (%d from DB + %d hardcoded, deduplicated)...\n",
 		len(repos), len(dbRepos), len(hardcodedRepos))
 	fmt.Printf("API URL: %s\n", apiURL)
-	fmt.Printf("Running 8 requests in parallel\n\n")
+	fmt.Printf("Running 8 worker threads for optimal throughput\n\n")
 
 	client := &http.Client{
 		Timeout: 10 * time.Minute, // Some repos might take a while
@@ -181,89 +189,170 @@ func main() {
 	var (
 		successCount int
 		failCount    int
+		results      []RequestResult
 		mu           sync.Mutex
 		wg           sync.WaitGroup
 	)
 
-	// Semaphore to limit concurrency to 5
-	sem := make(chan struct{}, 8)
-
-	for i, repo := range repos {
-		wg.Add(1)
-		go func(index int, r struct {
+	// Create channels for work distribution
+	workChan := make(chan struct {
+		index int
+		repo  struct {
 			Username string
 			Repo     string
-		}) {
+		}
+	}, len(repos))
+
+	// Fill the work channel with all repositories
+	for i, repo := range repos {
+		workChan <- struct {
+			index int
+			repo  struct {
+				Username string
+				Repo     string
+			}
+		}{
+			index: i,
+			repo:  repo,
+		}
+	}
+	close(workChan) // Close channel to signal no more work
+
+	// Start 8 worker goroutines
+	numWorkers := 8
+	for w := 0; w < numWorkers; w++ {
+		wg.Add(1)
+		go func(workerID int) {
 			defer wg.Done()
 
-			// Acquire semaphore (blocks if 2 are already running)
-			sem <- struct{}{}
-			defer func() { <-sem }() // Release semaphore when done
+			for work := range workChan {
+				fmt.Printf("[Worker %d] [%d/%d] Analyzing %s/%s...\n",
+					workerID+1, work.index+1, len(repos), work.repo.Username, work.repo.Repo)
 
-			fmt.Printf("[%d/%d] Analyzing %s/%s...\n", index+1, len(repos), r.Username, r.Repo)
-
-			reqBody := AnalyzeRequest{
-				Username: r.Username,
-				Repo:     r.Repo,
-			}
-
-			jsonData, err := json.Marshal(reqBody)
-			if err != nil {
-				log.Printf("Error marshaling request: %v", err)
-				mu.Lock()
-				failCount++
-				mu.Unlock()
-				return
-			}
-
-			req, err := http.NewRequest("POST", fmt.Sprintf("%s/api/analyze", apiURL), bytes.NewBuffer(jsonData))
-			if err != nil {
-				log.Printf("Error creating request: %v", err)
-				mu.Lock()
-				failCount++
-				mu.Unlock()
-				return
-			}
-
-			req.Header.Set("Content-Type", "application/json")
-
-			start := time.Now()
-			resp, err := client.Do(req)
-			if err != nil {
-				log.Printf("Error making request: %v", err)
-				mu.Lock()
-				failCount++
-				mu.Unlock()
-				return
-			}
-			defer resp.Body.Close()
-
-			duration := time.Since(start)
-
-			mu.Lock()
-			if resp.StatusCode == http.StatusOK {
-				var result AnalyzeResponse
-				if err := json.NewDecoder(resp.Body).Decode(&result); err == nil {
-					fmt.Printf("  ✓ Success! (%d lines, %d contributors) - %v\n",
-						result.TotalAdded-result.TotalRemoved, result.TotalContributors, duration)
-					successCount++
-				} else {
-					fmt.Printf("  ✓ Success! (cached or processing) - %v\n", duration)
-					successCount++
+				reqBody := AnalyzeRequest{
+					Username: work.repo.Username,
+					Repo:     work.repo.Repo,
 				}
-			} else if resp.StatusCode == http.StatusNotFound {
-				fmt.Printf("  ✗ Repository not found (404)\n")
-				failCount++
-			} else {
-				fmt.Printf("  ✗ Failed with status %d - %v\n", resp.StatusCode, duration)
-				failCount++
+
+				jsonData, err := json.Marshal(reqBody)
+				if err != nil {
+					log.Printf("[Worker %d] Error marshaling request: %v", workerID+1, err)
+					mu.Lock()
+					failCount++
+					mu.Unlock()
+					continue
+				}
+
+				req, err := http.NewRequest("POST", fmt.Sprintf("%s/api/analyze", apiURL), bytes.NewBuffer(jsonData))
+				if err != nil {
+					log.Printf("[Worker %d] Error creating request: %v", workerID+1, err)
+					mu.Lock()
+					failCount++
+					mu.Unlock()
+					continue
+				}
+
+				req.Header.Set("Content-Type", "application/json")
+
+				start := time.Now()
+				resp, err := client.Do(req)
+				duration := time.Since(start)
+				repoName := fmt.Sprintf("%s/%s", work.repo.Username, work.repo.Repo)
+
+				mu.Lock()
+				if err != nil {
+					log.Printf("[Worker %d] Error making request: %v", workerID+1, err)
+					failCount++
+					results = append(results, RequestResult{
+						Repo:     repoName,
+						Duration: duration,
+						Success:  false,
+						Error:    err.Error(),
+					})
+					mu.Unlock()
+					continue
+				}
+
+				if resp.StatusCode == http.StatusOK {
+					var result AnalyzeResponse
+					successCount++
+					results = append(results, RequestResult{
+						Repo:     repoName,
+						Duration: duration,
+						Success:  true,
+						Error:    "",
+					})
+					if err := json.NewDecoder(resp.Body).Decode(&result); err == nil {
+						fmt.Printf("  ✓ Success! (%d lines, %d contributors) - %v\n",
+							result.TotalAdded-result.TotalRemoved, result.TotalContributors, duration)
+					} else {
+						fmt.Printf("  ✓ Success! (cached or processing) - %v\n", duration)
+					}
+				} else if resp.StatusCode == http.StatusNotFound {
+					fmt.Printf("  ✗ Repository not found (404)\n")
+					failCount++
+					results = append(results, RequestResult{
+						Repo:     repoName,
+						Duration: duration,
+						Success:  false,
+						Error:    "Repository not found (404)",
+					})
+				} else {
+					fmt.Printf("  ✗ Failed with status %d - %v\n", resp.StatusCode, duration)
+					failCount++
+					results = append(results, RequestResult{
+						Repo:     repoName,
+						Duration: duration,
+						Success:  false,
+						Error:    fmt.Sprintf("HTTP status %d", resp.StatusCode),
+					})
+				}
+				mu.Unlock()
+
+				resp.Body.Close()
 			}
-			mu.Unlock()
-		}(i, repo)
+		}(w)
 	}
 
-	// Wait for all goroutines to complete
+	// Wait for all workers to complete
 	wg.Wait()
+
+	// Sort results by duration (longest to shortest)
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].Duration > results[j].Duration
+	})
+
+	fmt.Printf("\n=== Request Times (Longest to Fastest) ===\n")
+	var totalDuration time.Duration
+	for _, result := range results {
+		status := "✓"
+		if !result.Success {
+			status = "✗"
+		}
+		fmt.Printf("%s %s - %v\n", status, result.Repo, result.Duration)
+		totalDuration += result.Duration
+	}
+
+	// Calculate and log average
+	var avgDuration time.Duration
+	if len(results) > 0 {
+		avgDuration = totalDuration / time.Duration(len(results))
+	}
+	fmt.Printf("\n=== Average Request Time ===\n")
+	fmt.Printf("Average: %v\n", avgDuration)
+
+	// Log failed requests
+	fmt.Printf("\n=== Failed Requests ===\n")
+	failedCount := 0
+	for _, result := range results {
+		if !result.Success {
+			fmt.Printf("✗ %s - %s\n", result.Repo, result.Error)
+			failedCount++
+		}
+	}
+	if failedCount == 0 {
+		fmt.Printf("No failed requests!\n")
+	}
 
 	fmt.Printf("\n=== Summary ===\n")
 	fmt.Printf("Success: %d\n", successCount)
