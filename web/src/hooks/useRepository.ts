@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query'
-import { useMemo } from 'react'
 import type { CommitStats, AnalyzeResponse } from '@/types'
 
 async function analyzeRepo(username: string, repo: string) {
@@ -63,25 +62,9 @@ export function useRepository(
     gcTime,
   })
 
-  // Memoize processed data to prevent unnecessary recalculations
-  const processedData = useMemo(() => {
-    if (!query.data) return null
-
-    const currentYear = new Date().getFullYear()
-    const commitsThisYear = query.data.commits.filter(
-      (commit) => new Date(commit.date).getFullYear() === currentYear
-    )
-
-    return {
-      ...query.data,
-      commitsThisYear,
-      hasCommitsThisYear: commitsThisYear.length > 0,
-    }
-  }, [query.data])
-
   return {
     ...query,
-    data: processedData,
+    data: query.data,
     isNotFound:
       query.error instanceof Error && query.error.message === 'NOT_FOUND',
   }

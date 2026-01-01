@@ -56,7 +56,11 @@ export default function Repo() {
     )
   }
 
-  const { commits, commitsThisYear, hasCommitsThisYear } = data
+  const { commits } = data
+
+  const commitsThisYear = data.commits.filter(
+    (commit) => new Date(commit.date).getFullYear() === THIS_YEAR
+  )
 
   return (
     <div className="mx-auto min-h-screen max-w-6xl pt-4 pb-32">
@@ -158,7 +162,7 @@ export default function Repo() {
           <TopGitHubPRs prs={data.pullRequests.items} />
         )}
 
-        {hasCommitsThisYear ? (
+        {commitsThisYear.length > 0 ? (
           <div className="mt-52 space-y-52">
             <CraziestWeek stats={commitsThisYear} />
             <TopContributors commits={commitsThisYear} />
