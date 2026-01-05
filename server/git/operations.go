@@ -16,9 +16,7 @@ import (
 
 // GitConfig holds configuration for git operations
 type GitConfig struct {
-	MaxMemoryMB    int
 	TimeoutSeconds int
-	MaxCommits     int
 	TempDirPattern string
 }
 
@@ -33,9 +31,7 @@ type Repository struct {
 // CloneRepository safely clones a repository with resource management
 func CloneRepository(repoURL string) (*Repository, error) {
 	gitConfig := GitConfig{
-		MaxMemoryMB:    500,
-		TimeoutSeconds: 300, // 5 minutes
-		MaxCommits:     50000,
+		TimeoutSeconds: 600, // 10 minutes
 		TempDirPattern: "gitback-analysis-*",
 	}
 
@@ -90,8 +86,6 @@ func (r *Repository) AnalyzeCommits() ([]database.CommitStats, error) {
 		"log",
 		"--numstat",
 		"--format=%H|%an|%at|%s",
-		"--reverse", // Process oldest first for better memory usage
-		fmt.Sprintf("--max-count=%d", r.Config.MaxCommits),
 	)
 
 	stdout, err := cmd.StdoutPipe()

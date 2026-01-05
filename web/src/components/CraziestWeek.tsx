@@ -143,7 +143,7 @@ export function CraziestWeek({ stats }: CraziestWeekProps) {
 
           return (
             <div
-              key={day.dayName}
+              key={index}
               className="grid grid-cols-[1fr_auto] items-center gap-x-7"
             >
               <div

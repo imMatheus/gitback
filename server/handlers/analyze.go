@@ -284,7 +284,7 @@ func fetchGitHubRepoInfo(username, repo string) (*GitHubRepo, error) {
 
 func fetchRepoTopPullRequests(username, repo string) (*GitHubSearchResult, error) {
 	const prCount = 5
-	searchURL := fmt.Sprintf("https://api.github.com/search/issues?q=repo:%s/%s+type:pr+created:2025-01-01..2025-12-31&sort=reactions&order=desc&per_page=%d", username, repo, prCount)
+	searchURL := fmt.Sprintf("https://api.github.com/search/issues?q=repo:%s/%s+type:pr&sort=reactions&order=desc&per_page=%d", username, repo, prCount)
 
 	req, err := http.NewRequest("GET", searchURL, nil)
 	if err != nil {

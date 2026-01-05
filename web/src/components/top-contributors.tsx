@@ -74,7 +74,7 @@ export const TopContributors: React.FC<TopContributorsProps> = ({
           <div
             key={contributor.name}
             className={cn(
-              'bg-pinky text-obsidian-field rounded-full p-6 pr-2! transition-all',
+              'bg-pinky text-obsidian-field rounded-full p-6 pr-2',
               index === 0
                 ? 'col-span-3 row-span-2 flex flex-col justify-center p-10'
                 : index === 1 || index === 2 || index < 5 || index === 7

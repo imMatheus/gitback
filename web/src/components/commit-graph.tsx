@@ -194,7 +194,7 @@ export const CommitGraph: React.FC<CommitGraphProps> = ({
     let removed = 0
     for (let j = 0; j < commitsList.length; j++) {
       const commit = commitsList[j]!
-      totalLines += commit.added - commit.removed
+      totalLines += Math.max(0, commit.added - commit.removed)
       added += commit.added
       removed += commit.removed
     }

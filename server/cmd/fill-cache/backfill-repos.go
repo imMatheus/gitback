@@ -227,7 +227,7 @@ func main() {
 			defer wg.Done()
 
 			for work := range workChan {
-				fmt.Printf("[Worker %d] [%d/%d] Analyzing %s/%s...\n",
+				fmt.Printf("[Worker %d] [%d/%d] [%s/%s] Started analyzing...\n",
 					workerID+1, work.index+1, len(repos), work.repo.Username, work.repo.Repo)
 
 				reqBody := AnalyzeRequest{
@@ -237,7 +237,7 @@ func main() {
 
 				jsonData, err := json.Marshal(reqBody)
 				if err != nil {
-					log.Printf("[Worker %d] Error marshaling request: %v", workerID+1, err)
+					log.Printf("[Worker %d] [%s/%s] Error marshaling request: %v", workerID+1, work.repo.Username, work.repo.Repo, err)
 					mu.Lock()
 					failCount++
 					mu.Unlock()
@@ -246,7 +246,7 @@ func main() {
 
 				req, err := http.NewRequest("POST", fmt.Sprintf("%s/api/analyze", apiURL), bytes.NewBuffer(jsonData))
 				if err != nil {
-					log.Printf("[Worker %d] Error creating request: %v", workerID+1, err)
+					log.Printf("[Worker %d] [%s/%s] Error creating request: %v", workerID+1, work.repo.Username, work.repo.Repo, err)
 					mu.Lock()
 					failCount++
 					mu.Unlock()
@@ -262,7 +262,7 @@ func main() {
 
 				mu.Lock()
 				if err != nil {
-					log.Printf("[Worker %d] Error making request: %v", workerID+1, err)
+					log.Printf("[Worker %d] [%s/%s] Error making request: %v", workerID+1, work.repo.Username, work.repo.Repo, err)
 					failCount++
 					results = append(results, RequestResult{
 						Repo:     repoName,
@@ -284,13 +284,16 @@ func main() {
 						Error:    "",
 					})
 					if err := json.NewDecoder(resp.Body).Decode(&result); err == nil {
-						fmt.Printf("  ✓ Success! (%d lines, %d contributors) - %v\n",
+						fmt.Printf("[Worker %d] [%s/%s]  ✓ Success! (%d lines, %d contributors) - %v\n",
+							workerID+1, work.repo.Username, work.repo.Repo,
 							result.TotalAdded-result.TotalRemoved, result.TotalContributors, duration)
 					} else {
-						fmt.Printf("  ✓ Success! (cached or processing) - %v\n", duration)
+						fmt.Printf("[Worker %d] [%s/%s]  ✓ Success! (cached or processing) - %v\n",
+							workerID+1, work.repo.Username, work.repo.Repo, duration)
 					}
 				} else if resp.StatusCode == http.StatusNotFound {
-					fmt.Printf("  ✗ Repository not found (404)\n")
+					fmt.Printf("[Worker %d] [%s/%s]  ✗ Repository not found (404)\n",
+						workerID+1, work.repo.Username, work.repo.Repo)
 					failCount++
 					results = append(results, RequestResult{
 						Repo:     repoName,
@@ -299,7 +302,8 @@ func main() {
 						Error:    "Repository not found (404)",
 					})
 				} else {
-					fmt.Printf("  ✗ Failed with status %d - %v\n", resp.StatusCode, duration)
+					fmt.Printf("[Worker %d] [%s/%s]  ✗ Failed with status %d - %v\n",
+						workerID+1, work.repo.Username, work.repo.Repo, resp.StatusCode, duration)
 					failCount++
 					results = append(results, RequestResult{
 						Repo:     repoName,

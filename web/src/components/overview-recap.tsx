@@ -8,6 +8,7 @@ interface OverviewRecapProps {
   pullRequests: GitHubSearchResult | null
   repoName: string
   username: string
+  selectedYear: number
 }
 
 export const OverviewRecap: React.FC<OverviewRecapProps> = ({
@@ -15,6 +16,7 @@ export const OverviewRecap: React.FC<OverviewRecapProps> = ({
   pullRequests,
   repoName,
   username,
+  selectedYear,
 }) => {
   const cardRef = useRef<HTMLDivElement>(null)
   const [isCopied, setIsCopied] = useState(false)
@@ -141,7 +143,7 @@ export const OverviewRecap: React.FC<OverviewRecapProps> = ({
     .map(([_, contributor]) => contributor)
 
   const { daysArray } = useMemo(() => {
-    const dayToCommitMap = getAllDaysInYear(2025)
+    const dayToCommitMap = getAllDaysInYear(selectedYear)
 
     let maxCommitsInADay = 0
     for (const commit of commits) {
@@ -260,6 +262,9 @@ export const OverviewRecap: React.FC<OverviewRecapProps> = ({
                 </div>
               </div>
 
+              <p className="bg-obsidian-field text-polar-sand w-max rounded-full px-2 py-1 text-sm font-semibold">
+                {selectedYear}
+              </p>
               <p className="shrink-0 text-xl font-bold">
                 {'>'} gitback.immatheus.com
               </p>

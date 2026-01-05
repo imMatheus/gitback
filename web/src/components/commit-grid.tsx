@@ -4,6 +4,7 @@ import React, { useMemo, useState } from 'react'
 
 interface CommitGridProps {
   commits: CommitStats[]
+  selectedYear: number
 }
 
 const getAllDaysInYear = (year: number) => {
@@ -22,14 +23,21 @@ const getAllDaysInYear = (year: number) => {
 
 const colors = ['#2A1413', '#EE7759', '#BB4D34', '#8B3A29', '#5B271E']
 
-export const CommitGrid: React.FC<CommitGridProps> = ({ commits }) => {
+export const CommitGrid: React.FC<CommitGridProps> = ({
+  commits,
+  selectedYear,
+}) => {
   const [hoverDay, setHoverDay] = useState<string | null>(null)
   const { daysArray, maxCommitsInADay, longestStreak } = useMemo(() => {
-    const dayToCommitMap = getAllDaysInYear(2025)
+    const dayToCommitMap = getAllDaysInYear(selectedYear)
 
     let maxCommitsInADay = 0
     for (const commit of commits) {
-      const day = format(new Date(commit.date), 'EEEE, d MMM, yyyy')
+      const commitDate = new Date(commit.date)
+      if (commitDate.getFullYear() !== selectedYear) {
+        continue
+      }
+      const day = format(commitDate, 'EEEE, d MMM, yyyy')
       dayToCommitMap[day]++
       if (dayToCommitMap[day] > maxCommitsInADay) {
         maxCommitsInADay = dayToCommitMap[day]
@@ -54,7 +62,7 @@ export const CommitGrid: React.FC<CommitGridProps> = ({ commits }) => {
     }
 
     return { daysArray, maxCommitsInADay, longestStreak }
-  }, [commits])
+  }, [commits, selectedYear])
 
   const firstDate = new Date(daysArray[0][0])
   const firstDayOfTheWeek = firstDate.getDay()
@@ -70,7 +78,9 @@ export const CommitGrid: React.FC<CommitGridProps> = ({ commits }) => {
       <h3 className="mb-2 text-6xl font-black">Commit Grid</h3>
       <p className="mb-5 text-xl leading-relaxed font-semibold">
         {maxCommitsInADay === 0 ? (
-          'No commits were made in the year of 2025, boooooring...'
+          'No commits were made in the year of ' +
+          selectedYear +
+          ', boooooring...'
         ) : (
           <>
             The most commits in a day was{' '}
@@ -89,7 +99,7 @@ export const CommitGrid: React.FC<CommitGridProps> = ({ commits }) => {
             <span className="bg-alloy-ember text-obsidian-field rounded-full px-2.5 py-0.5 font-bold">
               {commits.length.toLocaleString()}
             </span>{' '}
-            commits all in the year of 2025.
+            commits all in the year of {selectedYear}.
           </>
         )}
       </p>

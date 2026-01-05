@@ -11,6 +11,8 @@ import { TopGitHubPRs } from '@/components/top-github-prs'
 import { OverviewRecap } from '@/components/overview-recap'
 import { CraziestWeek } from '@/components/CraziestWeek'
 import { useRepository } from '@/hooks/useRepository'
+import { useMemo, useState } from 'react'
+import { cn } from '@/lib/utils'
 
 const THIS_YEAR = 2025
 
@@ -18,6 +20,19 @@ export default function Repo() {
   const { username, repo } = useParams<{ username: string; repo: string }>()
 
   const { data, isLoading, isError, isNotFound } = useRepository(username, repo)
+
+  const [dateRange, setDateRange] = useState<'all' | number>('all')
+
+  const allAvailableYears = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          data?.commits.map((commit) => new Date(commit.date).getFullYear()) ??
+            []
+        )
+      ).sort((a, b) => b - a),
+    [data?.commits]
+  )
 
   if (isLoading) {
     return (
@@ -56,12 +71,12 @@ export default function Repo() {
     )
   }
 
-  const { commits } = data
-
-  const commitsThisYear = data.commits.filter(
-    (commit) => new Date(commit.date).getFullYear() === THIS_YEAR
-  )
-
+  const commitsThisYear =
+    dateRange === 'all'
+      ? data.commits
+      : data.commits.filter(
+          (commit) => new Date(commit.date).getFullYear() === dateRange
+        )
   return (
     <div className="mx-auto min-h-screen max-w-6xl pt-4 pb-32">
       <div className="px-6">
@@ -123,14 +138,51 @@ export default function Repo() {
 
         <div className="my-10">
           <CommitGraph
-            commits={commits}
+            commits={data.commits}
             totalContributors={data.totalContributors}
             totalAdded={data.totalAdded}
             totalRemoved={data.totalRemoved}
           />
         </div>
 
-        <div className="my-10 grid grid-rows-3 space-y-3">
+        {data.pullRequests && data.pullRequests.items.length > 0 && (
+          <TopGitHubPRs prs={data.pullRequests.items} />
+        )}
+
+        <div className="bg-obsidian-field sticky top-0 z-10 py-4">
+          <p className="mb-2 font-bold">Year to look at</p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              className={cn(
+                'text-obsidian-field cursor-pointer rounded-full px-5 py-3 text-xl font-bold',
+                {
+                  'bg-core-flux': dateRange === 'all',
+                  'bg-polar-sand': dateRange !== 'all',
+                }
+              )}
+              onClick={() => setDateRange('all')}
+            >
+              All
+            </button>
+            {allAvailableYears.map((year) => (
+              <button
+                key={year}
+                className={cn(
+                  'text-obsidian-field cursor-pointer rounded-full px-5 py-3 text-xl font-bold',
+                  {
+                    'bg-core-flux': dateRange === year,
+                    'bg-polar-sand': dateRange !== year,
+                  }
+                )}
+                onClick={() => setDateRange(year)}
+              >
+                {year}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* <div className="my-10 grid grid-rows-3 space-y-3">
           <div className="flex gap-3 transition-all ease-in-out">
             <div className="bg-ion-drift flex-1 rounded-full transition-all duration-1000 ease-in-out hover:flex-2 hover:duration-100" />
             <div className="bg-core-flux flex-1 rounded-full transition-all duration-1000 ease-in-out hover:flex-2 hover:duration-100" />
@@ -156,14 +208,10 @@ export default function Repo() {
             <div className="bg-core-flux flex-1 rounded-full transition-all duration-1000 ease-in-out hover:flex-2 hover:duration-100" />
             <div className="bg-pinky flex-1 rounded-full transition-all duration-1000 ease-in-out hover:flex-2 hover:duration-100" />
           </div>
-        </div>
-
-        {data.pullRequests && data.pullRequests.items.length > 0 && (
-          <TopGitHubPRs prs={data.pullRequests.items} />
-        )}
+        </div> */}
 
         {commitsThisYear.length > 0 ? (
-          <div className="mt-52 space-y-52">
+          <div className="mt-32 space-y-32">
             <CraziestWeek stats={commitsThisYear} />
             <TopContributors commits={commitsThisYear} />
             <FileCountDistribution commits={commitsThisYear} />
@@ -173,7 +221,11 @@ export default function Repo() {
               repo={repo}
               username={username}
             />
-            <CommitGrid commits={commitsThisYear} />
+            <CommitGrid
+              commits={commitsThisYear}
+              selectedYear={dateRange === 'all' ? THIS_YEAR : dateRange}
+            />
+
             {data.pullRequests && data.pullRequests.items.length > 0 && (
               <TopGitHubPRs prs={data.pullRequests.items} />
             )}
@@ -183,12 +235,14 @@ export default function Repo() {
               pullRequests={data.pullRequests}
               repoName={repo}
               username={username}
+              selectedYear={dateRange === 'all' ? THIS_YEAR : dateRange}
             />
           </div>
         ) : (
           <div className="mt-52 space-y-52">
             <p className="text-2xl font-semibold">
-              No commits were made in the year of {THIS_YEAR}, boooooring...
+              No commits were made in the year of{' '}
+              {dateRange === 'all' ? THIS_YEAR : dateRange}, boooooring...
             </p>
           </div>
         )}
