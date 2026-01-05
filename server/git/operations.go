@@ -58,16 +58,15 @@ func CloneRepository(repoURL string) (*Repository, error) {
 	cmd := exec.CommandContext(ctx, "git", "clone",
 		"--bare",
 		"--single-branch",
-		"--depth=1000", // Limit initial depth for performance
-		"--no-tags",    // Skip tags for faster clone
+		"--no-tags", // Skip tags for faster clone
 		repoURL,
 		tmpDir)
 
 	// Limit memory usage
-	cmd.Env = append(os.Environ(),
-		fmt.Sprintf("GIT_CONFIG_GLOBAL=/dev/null"),
-		fmt.Sprintf("GIT_CONFIG_SYSTEM=/dev/null"),
-	)
+	// cmd.Env = append(os.Environ(),
+	// 	fmt.Sprintf("GIT_CONFIG_GLOBAL=/dev/null"),
+	// 	fmt.Sprintf("GIT_CONFIG_SYSTEM=/dev/null"),
+	// )
 
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
