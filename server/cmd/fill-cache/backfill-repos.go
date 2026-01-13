@@ -183,6 +183,9 @@ func main() {
 	fmt.Printf("API URL: %s\n", apiURL)
 	fmt.Printf("Running 8 worker threads for optimal throughput\n\n")
 
+	// Start timing the entire backfill process
+	backfillStart := time.Now()
+
 	client := &http.Client{
 		Timeout: 10 * time.Minute, // Some repos might take a while
 	}
@@ -359,8 +362,12 @@ func main() {
 		fmt.Printf("No failed requests!\n")
 	}
 
+	totalBackfillDuration := time.Since(backfillStart)
+
 	fmt.Printf("\n=== Summary ===\n")
 	fmt.Printf("Success: %d\n", successCount)
 	fmt.Printf("Failed:  %d\n", failCount)
 	fmt.Printf("Total:   %d\n", len(repos))
+	fmt.Printf("\n=== Total Backfill Duration ===\n")
+	fmt.Printf("Total time: %v\n", totalBackfillDuration)
 }
