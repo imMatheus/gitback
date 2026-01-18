@@ -145,9 +145,6 @@ export default function Repo() {
           />
         </div>
 
-        {data.pullRequests && data.pullRequests.items.length > 0 && (
-          <TopGitHubPRs prs={data.pullRequests.items} />
-        )}
 
         <div className="bg-obsidian-field sticky top-0 z-10 py-4">
           <p className="mb-2 font-bold">Year to look at</p>
