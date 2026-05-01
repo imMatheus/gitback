@@ -88,6 +88,12 @@ func AnalyzeRepo(c *fiber.Ctx) error {
 	}
 
 	repoURL := fmt.Sprintf("https://github.com/%s/%s.git", req.Username, req.Repo)
+
+	// Validate repository URL before processing
+	if err := git.ValidateRepoURL(repoURL); err != nil {
+		return middleware.ValidationError(c, err.Error())
+	}
+
 	log.Printf("=== Starting analysis for: %s ===", repoURL)
 
 	if cachedData, err := storage.GetFromCache(req.Username, req.Repo); err != nil {
@@ -103,11 +109,6 @@ func AnalyzeRepo(c *fiber.Ctx) error {
 		}()
 
 		return c.JSON(cachedData)
-	}
-
-	// Validate repository URL before processing
-	if err := git.ValidateRepoURL(repoURL); err != nil {
-		return middleware.ValidationError(c, err.Error())
 	}
 
 	// Clone and analyze repository with improved git operations
